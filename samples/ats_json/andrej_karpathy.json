@@ -1,0 +1,73 @@
+{
+  "id": 71388204,
+  "first_name": "Andrej",
+  "last_name": "Karpathy",
+  "company": "Eureka Labs",
+  "title": "Founder",
+  "created_at": "2026-04-15T08:55:30.000Z",
+  "updated_at": "2026-05-20T11:22:47.000Z",
+  "last_activity": "2026-05-20T11:22:47.000Z",
+  "is_private": false,
+  "photo_url": null,
+  "attachments": [],
+  "application_ids": [
+    94012378
+  ],
+  "phone_numbers": [
+    {
+      "value": "+1-650-555-0287",
+      "type": "mobile"
+    }
+  ],
+  "addresses": [
+    {
+      "value": "Stanford, CA, USA",
+      "type": "home"
+    }
+  ],
+  "email_addresses": [
+    {
+      "value": "andrej@eurekalabs.ai",
+      "type": "work"
+    },
+    {
+      "value": "andrej.karpathy@gmail.com",
+      "type": "personal"
+    }
+  ],
+  "website_addresses": [
+    {
+      "value": "https://karpathy.ai",
+      "type": "personal"
+    }
+  ],
+  "social_media_addresses": [
+    {
+      "value": "https://linkedin.com/in/andrej-karpathy",
+      "type": "linkedin"
+    }
+  ],
+  "employments": [
+    {
+      "company_name": "Eureka Labs",
+      "title": "Founder",
+      "start_date": "2024-07",
+      "end_date": null
+    },
+    {
+      "company_name": "OpenAI",
+      "title": "Research Scientist",
+      "start_date": "2015-06",
+      "end_date": "2017-06"
+    }
+  ],
+  "educations": [
+    {
+      "school_name": "Stanford University",
+      "degree": "Doctor of Philosophy",
+      "discipline": "Computer Science",
+      "start_date": "2011",
+      "end_date": "2015"
+    }
+  ]
+}

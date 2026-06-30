@@ -1,0 +1,73 @@
+{
+  "id": 69102626,
+  "first_name": "Kelsey",
+  "last_name": "Hightower",
+  "company": "Stripe Inc.",
+  "title": "Staff Platform Engineer",
+  "created_at": "2026-04-01T10:22:11.000Z",
+  "updated_at": "2026-05-12T16:48:03.000Z",
+  "last_activity": "2026-05-12T16:48:03.000Z",
+  "is_private": false,
+  "photo_url": null,
+  "attachments": [],
+  "application_ids": [
+    69102626
+  ],
+  "phone_numbers": [
+    {
+      "value": "+1-202-555-0142",
+      "type": "mobile"
+    }
+  ],
+  "addresses": [
+    {
+      "value": "Washington, DC, USA",
+      "type": "home"
+    }
+  ],
+  "email_addresses": [
+    {
+      "value": "kelsey@stripe.com",
+      "type": "work"
+    },
+    {
+      "value": "kelsey.hightower@gmail.com",
+      "type": "personal"
+    }
+  ],
+  "website_addresses": [
+    {
+      "value": "https://github.com/kelseyhightower",
+      "type": "personal"
+    }
+  ],
+  "social_media_addresses": [
+    {
+      "value": "https://linkedin.com/in/kelsey-hightower",
+      "type": "linkedin"
+    }
+  ],
+  "employments": [
+    {
+      "company_name": "Stripe Inc.",
+      "title": "Staff Platform Engineer",
+      "start_date": "2021-03",
+      "end_date": null
+    },
+    {
+      "company_name": "Google LLC",
+      "title": "Staff Developer Advocate",
+      "start_date": "2014-05",
+      "end_date": "2021-02"
+    }
+  ],
+  "educations": [
+    {
+      "school_name": "Georgia Institute of Technology",
+      "degree": "Bachelor of Science",
+      "discipline": "Computer Science",
+      "start_date": "2003",
+      "end_date": "2007"
+    }
+  ]
+}

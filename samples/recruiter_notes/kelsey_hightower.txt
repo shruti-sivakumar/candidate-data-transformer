@@ -1,0 +1,11 @@
+5/12 — first call, ~40 min. Kelsey came in through a warm intro from Marcus on our platform team — apparently they go back to the early Kubernetes days. He's currently at Stripe in DC doing platform eng, basically owning the internal developer experience layer on top of k8s. He talked at length about the work he's done getting distributed workloads to behave across environments — the kind of depth you rarely get from someone with his breadth. Super fluent in Go, clearly has thought hard about the right abstractions for platform engineering and where most companies get it wrong. He's been at Stripe ~2.5 yrs, before that had a stretch doing infrastructure and cloud advisory work. Total exp somewhere north of 12 yrs. hireable=true on his GitHub profile which I noticed, but he didn't bring it up directly. — Riya R.
+
+Contact: kelsey.hightower@gmail.com / +1 202 555 0142
+LinkedIn: https://linkedin.com/in/kelsey-hightower
+(work is kelsey@stripe.com but he said personal is faster)
+
+Comp: current TC ~$650k all-in at Stripe. He's not in a rush but said he'd move for the right role and the right team — ballpark $800k-1M for a staff+ title where he actually owns something. Equity matters, wants real upside not just refreshers. Mentioned he's done enough "go-live at 2am" phases in his life and would want to understand the operational culture before committing.
+
+5/28 — brief follow-up, email + quick call. He asked about team size and how much of the role is greenfield vs. inheriting legacy infra. Good sign he's engaging at that level of detail. He mentioned a colleague — Daz, also infrastructure background, might be worth a separate reach-out. Sending JD this week. — Riya R.
+
+6/10 — he's heads-down on a Stripe incident review the next two weeks, asked to reconnect after June 25. Wife is expecting their second kid in August so he flagged he'd want to move relatively fast once he's ready — doesn't want things dragging into the fall. Loop back end of June. — Riya R.
