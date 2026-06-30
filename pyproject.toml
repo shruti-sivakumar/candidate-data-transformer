@@ -1,0 +1,24 @@
+[project]
+name = "candidate-data-transformer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "jmespath>=1.1.0",
+    "jsonschema>=4.26.0",
+    "phonenumbers>=9.0.33",
+    "pycountry>=26.2.16",
+    "pydantic>=2.13.4",
+    "python-dateutil>=2.9.0.post0",
+    "requests>=2.34.2",
+    "typer>=0.26.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
