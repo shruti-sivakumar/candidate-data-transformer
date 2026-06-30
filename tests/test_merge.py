@@ -6,6 +6,7 @@ from pathlib import Path
 from src.transformer.ingest import read_file
 from src.transformer.merge import merge_records
 from src.transformer.normalize.orchestrator import normalize_record
+from src.transformer.score import score_profile
 from src.transformer.sources.ats_source import ATSSource
 from src.transformer.sources.csv_source import CSVSource
 from src.transformer.sources.github_source import GitHubSource
@@ -74,8 +75,14 @@ class TestMergeRealFixtures:
         assert events
         assert events[0].details["winner_source"] == "ats_json"
 
-    def test_overall_confidence_is_weighted_and_bounded(self):
+    def test_merge_does_not_compute_overall_confidence(self):
         profile, _ = merge_records(_kelsey_records())
+
+        assert profile.overall_confidence == 0.0
+
+    def test_score_stage_computes_weighted_overall_confidence(self):
+        merged, _ = merge_records(_kelsey_records())
+        profile = score_profile(merged)
 
         assert 0.0 <= profile.overall_confidence <= 1.0
         assert profile.overall_confidence > 0.8
