@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import re
 
+from src.transformer.audit import make_event
 from src.transformer.models import (
+    AuditEvent,
     EducationEntry,
     ExperienceEntry,
     Links,
@@ -169,8 +171,15 @@ def _education_entry(
 
 
 def normalize_csv(record: RawRecord) -> NormalizedRecord:
+    """Backward-compatible wrapper returning only the normalized record."""
+    normalized, _ = normalize_csv_with_audit(record)
+    return normalized
+
+
+def normalize_csv_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[AuditEvent]]:
     """Map and normalize one CSV RawRecord into a NormalizedRecord."""
     f = record.raw_fields
+    audit_log: list[AuditEvent] = []
 
     def get(col: str) -> str | None:
         v = f.get(col)
@@ -182,36 +191,76 @@ def normalize_csv(record: RawRecord) -> NormalizedRecord:
     name_str = " ".join(p for p in (first, last) if p) or None
     if name_str:
         full_name = _tracked(name_str, "direct", 1.0)
+    else:
+        audit_log.append(make_event("normalize", "full_name", "field_missing", "no_name_parts", source=_SOURCE))
 
     emails: list[TrackedValue] = []
-    email_val, email_valid = normalize_email(get("email"))
+    raw_email = get("email")
+    email_val, email_valid = normalize_email(raw_email)
     if email_val is not None:
         emails.append(_tracked(email_val, "direct", email_valid))
+    elif raw_email:
+        audit_log.append(
+            make_event("normalize", "emails", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_email)
+        )
+    else:
+        audit_log.append(make_event("normalize", "emails", "field_missing", "source_field_absent", source=_SOURCE))
 
     phones: list[TrackedValue] = []
-    phone_val, phone_valid = normalize_phone(get("phone"))
+    raw_phone = get("phone")
+    phone_val, phone_valid = normalize_phone(raw_phone)
     if phone_val is not None:
         phones.append(_tracked(phone_val, "direct", phone_valid))
+    elif raw_phone:
+        audit_log.append(
+            make_event("normalize", "phones", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_phone)
+        )
+    else:
+        audit_log.append(make_event("normalize", "phones", "field_missing", "source_field_absent", source=_SOURCE))
 
     location = None
-    loc_val, loc_valid = _classify_location(get("location"))
+    raw_location = get("location")
+    loc_val, loc_valid = _classify_location(raw_location)
     if loc_val is not None:
         location = _tracked(loc_val, "direct", loc_valid)
+    elif raw_location:
+        audit_log.append(
+            make_event("normalize", "location", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_location)
+        )
+    else:
+        audit_log.append(make_event("normalize", "location", "field_missing", "source_field_absent", source=_SOURCE))
 
     links = None
-    linkedin_val, linkedin_valid = normalize_url(get("linkedin_url"))
+    raw_linkedin = get("linkedin_url")
+    linkedin_val, linkedin_valid = normalize_url(raw_linkedin)
     if linkedin_val is not None:
         links = _tracked(Links(linkedin=linkedin_val), "direct", linkedin_valid)
+    elif raw_linkedin:
+        audit_log.append(
+            make_event("normalize", "links.linkedin", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_linkedin)
+        )
+    else:
+        audit_log.append(make_event("normalize", "links.linkedin", "field_missing", "source_field_absent", source=_SOURCE))
 
     headline = None
-    headline_str = clean_string(get("headline"))
+    raw_headline = get("headline")
+    headline_str = clean_string(raw_headline)
     if headline_str:
         headline = _tracked(headline_str, "direct", 1.0)
+    else:
+        audit_log.append(make_event("normalize", "headline", "field_missing", "source_field_absent", source=_SOURCE))
 
     years_experience = None
-    years_val, years_valid = normalize_years(get("years_experience"))
+    raw_years = get("years_experience")
+    years_val, years_valid = normalize_years(raw_years)
     if years_val is not None:
         years_experience = _tracked(years_val, "direct", years_valid)
+    elif raw_years:
+        audit_log.append(
+            make_event("normalize", "years_experience", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_years)
+        )
+    else:
+        audit_log.append(make_event("normalize", "years_experience", "field_missing", "source_field_absent", source=_SOURCE))
 
     skills: list[TrackedValue] = []
     raw_skills = get("top_skills")
@@ -220,28 +269,59 @@ def normalize_csv(record: RawRecord) -> NormalizedRecord:
             s = clean_string(piece)
             if s:
                 skills.append(_tracked(s, "direct", 1.0))
+        if not skills:
+            audit_log.append(
+                make_event("normalize", "skills", "field_dropped", "no_clean_skill_values", source=_SOURCE, raw_value=raw_skills)
+            )
+    else:
+        audit_log.append(make_event("normalize", "skills", "field_missing", "source_field_absent", source=_SOURCE))
 
     experience: list[TrackedValue] = []
+    cur_company = get("current_company")
+    cur_title = get("current_title")
+    cur_start = get("current_title_start")
     cur = _experience_entry(
-        get("current_company"), get("current_title"),
-        get("current_title_start"), end=None,
+        cur_company, cur_title,
+        cur_start, end=None,
     )
     if cur is not None:
         experience.append(cur)
+    elif any((cur_company, cur_title, cur_start)):
+        audit_log.append(
+            make_event("normalize", "experience.current", "entry_dropped", "missing_company_anchor", source=_SOURCE)
+        )
     prev = _experience_entry(
         get("prev_company"), get("prev_title"),
         get("prev_start"), get("prev_end"),
     )
     if prev is not None:
         experience.append(prev)
+    elif any((get("prev_company"), get("prev_title"), get("prev_start"), get("prev_end"))):
+        audit_log.append(
+            make_event("normalize", "experience.previous", "entry_dropped", "missing_company_anchor", source=_SOURCE)
+        )
+    if not experience and not any(
+        (
+            cur_company, cur_title, cur_start,
+            get("prev_company"), get("prev_title"), get("prev_start"), get("prev_end"),
+        )
+    ):
+        audit_log.append(make_event("normalize", "experience", "field_missing", "source_field_absent", source=_SOURCE))
 
     education: list[TrackedValue] = []
+    raw_inst = get("education_institution")
     edu = _education_entry(
-        get("education_institution"), get("education_degree"),
+        raw_inst, get("education_degree"),
         get("education_field"), get("education_end_year"),
     )
     if edu is not None:
         education.append(edu)
+    elif any((raw_inst, get("education_degree"), get("education_field"), get("education_end_year"))):
+        audit_log.append(
+            make_event("normalize", "education", "entry_dropped", "missing_institution_anchor", source=_SOURCE)
+        )
+    else:
+        audit_log.append(make_event("normalize", "education", "field_missing", "source_field_absent", source=_SOURCE))
 
     return NormalizedRecord(
         source=_SOURCE,
@@ -256,4 +336,4 @@ def normalize_csv(record: RawRecord) -> NormalizedRecord:
         experience=experience,
         education=education,
         projects=[],
-    )
+    ), audit_log

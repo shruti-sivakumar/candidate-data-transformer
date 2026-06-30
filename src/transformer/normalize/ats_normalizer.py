@@ -7,7 +7,9 @@ matches emails on normalized value, so the tag is not needed downstream.
 """
 from __future__ import annotations
 
+from src.transformer.audit import make_event
 from src.transformer.models import (
+    AuditEvent,
     EducationEntry,
     ExperienceEntry,
     Links,
@@ -110,8 +112,15 @@ def _education_entry(edu: dict) -> TrackedValue | None:
 
 
 def normalize_ats(record: RawRecord) -> NormalizedRecord:
+    """Backward-compatible wrapper returning only the normalized record."""
+    normalized, _ = normalize_ats_with_audit(record)
+    return normalized
+
+
+def normalize_ats_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[AuditEvent]]:
     """Map and normalize one ATS RawRecord into a NormalizedRecord."""
     f = record.raw_fields
+    audit_log: list[AuditEvent] = []
 
     # full_name: first + last
     full_name = None
@@ -120,22 +129,42 @@ def normalize_ats(record: RawRecord) -> NormalizedRecord:
     name_str = " ".join(p for p in (first, last) if p) or None
     if name_str:
         full_name = _tracked(name_str, "direct", 1.0)
+    else:
+        audit_log.append(make_event("normalize", "full_name", "field_missing", "no_name_parts", source=_SOURCE))
 
     # emails: email_addresses[].value (type tag dropped; merge matches on value)
     emails: list[TrackedValue] = []
-    for e in f.get("email_addresses") or []:
+    email_entries = f.get("email_addresses") or []
+    for e in email_entries:
         if isinstance(e, dict):
             val, valid = normalize_email(e.get("value"))
             if val is not None:
                 emails.append(_tracked(val, "direct", valid))
+            elif e.get("value"):
+                audit_log.append(
+                    make_event("normalize", "emails", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=e.get("value"))
+                )
+        else:
+            audit_log.append(make_event("normalize", "emails", "entry_dropped", "non_object_array_entry", source=_SOURCE))
+    if not email_entries:
+        audit_log.append(make_event("normalize", "emails", "field_missing", "source_field_absent", source=_SOURCE))
 
     # phones: phone_numbers[].value
     phones: list[TrackedValue] = []
-    for p in f.get("phone_numbers") or []:
+    phone_entries = f.get("phone_numbers") or []
+    for p in phone_entries:
         if isinstance(p, dict):
             val, valid = normalize_phone(p.get("value") if isinstance(p.get("value"), str) else None)
             if val is not None:
                 phones.append(_tracked(val, "direct", valid))
+            elif p.get("value"):
+                audit_log.append(
+                    make_event("normalize", "phones", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=p.get("value"))
+                )
+        else:
+            audit_log.append(make_event("normalize", "phones", "entry_dropped", "non_object_array_entry", source=_SOURCE))
+    if not phone_entries:
+        audit_log.append(make_event("normalize", "phones", "field_missing", "source_field_absent", source=_SOURCE))
 
     # location: first address value
     location = None
@@ -144,17 +173,34 @@ def normalize_ats(record: RawRecord) -> NormalizedRecord:
         loc_val, loc_valid = _classify_location(addresses[0].get("value"))
         if loc_val is not None:
             location = _tracked(loc_val, "direct", loc_valid)
+        elif addresses[0].get("value"):
+            audit_log.append(
+                make_event("normalize", "location", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=addresses[0].get("value"))
+            )
+    elif addresses:
+        audit_log.append(make_event("normalize", "location", "entry_dropped", "non_object_array_entry", source=_SOURCE))
+    else:
+        audit_log.append(make_event("normalize", "location", "field_missing", "source_field_absent", source=_SOURCE))
 
     # links: website + social addresses, classified by domain
     links = None
     linkedin = github = portfolio = None
     other: list[str] = []
+    link_inputs_present = False
     for key in ("website_addresses", "social_media_addresses"):
-        for w in f.get(key) or []:
+        entries = f.get(key) or []
+        if entries:
+            link_inputs_present = True
+        for w in entries:
             if not isinstance(w, dict):
+                audit_log.append(make_event("normalize", "links", "entry_dropped", "non_object_array_entry", source=_SOURCE))
                 continue
             url_val, _ = normalize_url(w.get("value"))
             if url_val is None:
+                if w.get("value"):
+                    audit_log.append(
+                        make_event("normalize", "links", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=w.get("value"))
+                    )
                 continue
             low = url_val.lower()
             if "linkedin.com" in low and linkedin is None:
@@ -168,22 +214,38 @@ def normalize_ats(record: RawRecord) -> NormalizedRecord:
             Links(linkedin=linkedin, github=github, portfolio=portfolio, other=other),
             "direct", 1.0,
         )
+    elif not link_inputs_present:
+        audit_log.append(make_event("normalize", "links", "field_missing", "source_field_absent", source=_SOURCE))
 
     # experience: employments[]
     experience: list[TrackedValue] = []
-    for emp in f.get("employments") or []:
+    employments = f.get("employments") or []
+    for emp in employments:
         if isinstance(emp, dict):
             entry = _experience_entry(emp)
             if entry is not None:
                 experience.append(entry)
+            elif any(emp.get(key) for key in ("company_name", "title", "start_date", "end_date")):
+                audit_log.append(make_event("normalize", "experience", "entry_dropped", "missing_company_anchor", source=_SOURCE))
+        else:
+            audit_log.append(make_event("normalize", "experience", "entry_dropped", "non_object_array_entry", source=_SOURCE))
+    if not employments:
+        audit_log.append(make_event("normalize", "experience", "field_missing", "source_field_absent", source=_SOURCE))
 
     # education: educations[]
     education: list[TrackedValue] = []
-    for edu in f.get("educations") or []:
+    educations = f.get("educations") or []
+    for edu in educations:
         if isinstance(edu, dict):
             entry = _education_entry(edu)
             if entry is not None:
                 education.append(entry)
+            elif any(edu.get(key) for key in ("school_name", "degree", "discipline", "end_date")):
+                audit_log.append(make_event("normalize", "education", "entry_dropped", "missing_institution_anchor", source=_SOURCE))
+        else:
+            audit_log.append(make_event("normalize", "education", "entry_dropped", "non_object_array_entry", source=_SOURCE))
+    if not educations:
+        audit_log.append(make_event("normalize", "education", "field_missing", "source_field_absent", source=_SOURCE))
 
     return NormalizedRecord(
         source=_SOURCE,
@@ -198,4 +260,4 @@ def normalize_ats(record: RawRecord) -> NormalizedRecord:
         experience=experience,
         education=education,
         projects=[],
-    )
+    ), audit_log

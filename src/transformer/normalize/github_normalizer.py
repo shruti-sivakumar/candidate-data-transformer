@@ -8,7 +8,9 @@ contribute no skill.
 """
 from __future__ import annotations
 
+from src.transformer.audit import make_event
 from src.transformer.models import (
+    AuditEvent,
     Links,
     NormalizedProject,
     NormalizedRecord,
@@ -31,8 +33,15 @@ def _tracked(value: object, method: str, format_validity: float) -> TrackedValue
 
 
 def normalize_github(record: RawRecord) -> NormalizedRecord:
+    """Backward-compatible wrapper returning only the normalized record."""
+    normalized, _ = normalize_github_with_audit(record)
+    return normalized
+
+
+def normalize_github_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[AuditEvent]]:
     """Map and normalize one GitHub RawRecord into a NormalizedRecord."""
     f = record.raw_fields
+    audit_log: list[AuditEvent] = []
     profile = f.get("profile") or {}
     repos = f.get("repos") or []
     if not isinstance(profile, dict):
@@ -43,18 +52,29 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
     name_str = clean_string(profile.get("name"))
     if name_str:
         full_name = _tracked(name_str, "direct", 1.0)
+    else:
+        audit_log.append(make_event("normalize", "full_name", "field_missing", "source_field_absent", source=_SOURCE))
 
     # headline from bio
     headline = None
     bio = clean_string(profile.get("bio"))
     if bio:
         headline = _tracked(bio, "direct", 1.0)
+    else:
+        audit_log.append(make_event("normalize", "headline", "field_missing", "source_field_absent", source=_SOURCE))
 
     # location: GitHub location is usually a bare city (positional parse handles it)
     location = None
-    loc_val, loc_valid = classify_location(profile.get("location"))
+    raw_location = profile.get("location")
+    loc_val, loc_valid = classify_location(raw_location)
     if loc_val is not None:
         location = _tracked(loc_val, "direct", loc_valid)
+    elif raw_location:
+        audit_log.append(
+            make_event("normalize", "location", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=raw_location)
+        )
+    else:
+        audit_log.append(make_event("normalize", "location", "field_missing", "source_field_absent", source=_SOURCE))
 
     # links: profile html_url (github), blog (portfolio)
     links = None
@@ -65,6 +85,8 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
             Links(github=github_url, portfolio=blog_url, other=[]),
             "direct", 1.0,
         )
+    else:
+        audit_log.append(make_event("normalize", "links", "field_missing", "source_field_absent", source=_SOURCE))
 
     # projects (non-fork repos, direct) + skills (repo language, inferred)
     projects: list[TrackedValue] = []
@@ -72,8 +94,19 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
     seen_langs: set[str] = set()
     for repo in repos:
         if not isinstance(repo, dict):
+            audit_log.append(make_event("normalize", "repos[]", "entry_dropped", "non_object_array_entry", source=_SOURCE))
             continue
         if repo.get("fork"):
+            audit_log.append(
+                make_event(
+                    "normalize",
+                    "projects",
+                    "entry_dropped",
+                    "fork_repo_excluded",
+                    source=_SOURCE,
+                    repo_name=repo.get("name"),
+                )
+            )
             continue  # drop forks: API cannot attest authorship
         # project
         pname = clean_string(repo.get("name"))
@@ -86,6 +119,8 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
                 primary_language=clean_string(repo.get("language")),
             )
             projects.append(_tracked(entry, "direct", 1.0))
+        else:
+            audit_log.append(make_event("normalize", "projects", "entry_dropped", "missing_project_name", source=_SOURCE))
         # skill from language (inferred), deduped across repos
         lang = clean_string(repo.get("language"))
         if lang:
@@ -93,6 +128,22 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
             if canon and canon.lower() not in seen_langs:
                 seen_langs.add(canon.lower())
                 skills.append(_tracked(canon, "inferred", 1.0))
+            elif canon:
+                audit_log.append(
+                    make_event("normalize", "skills", "value_dropped", "duplicate_canonical_skill", source=_SOURCE, raw_value=canon)
+                )
+            else:
+                audit_log.append(
+                    make_event("normalize", "skills", "value_dropped", "failed_canonicalization", source=_SOURCE, raw_value=lang)
+                )
+        else:
+            audit_log.append(
+                make_event("normalize", "skills", "value_dropped", "missing_language_for_inference", source=_SOURCE, repo_name=repo.get("name"))
+            )
+
+    if not repos:
+        audit_log.append(make_event("normalize", "projects", "field_missing", "source_field_absent", source=_SOURCE))
+        audit_log.append(make_event("normalize", "skills", "field_missing", "source_field_absent", source=_SOURCE))
 
     return NormalizedRecord(
         source=_SOURCE,
@@ -107,4 +158,4 @@ def normalize_github(record: RawRecord) -> NormalizedRecord:
         experience=[],
         education=[],
         projects=projects,
-    )
+    ), audit_log

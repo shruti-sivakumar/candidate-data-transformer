@@ -17,7 +17,8 @@ import logging
 import re
 from collections.abc import Iterable
 
-from src.transformer.models import RawRecord
+from src.transformer.audit import make_event
+from src.transformer.models import AuditEvent, RawRecord
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +60,19 @@ class NotesSource:
         )
 
     def extract(self, payload: str) -> list[RawRecord]:
+        """Backward-compatible wrapper returning only records."""
+        records, _ = self.extract_with_audit(payload)
+        return records
+
+    def extract_with_audit(self, payload: str) -> tuple[list[RawRecord], list[AuditEvent]]:
         """Recognize contacts and skills in a note. Returns [] on empty/failure."""
+        audit_log: list[AuditEvent] = []
         try:
             if not payload or not payload.strip():
-                return []  # empty-but-valid: silent, per adapter contract
+                audit_log.append(
+                    make_event("extract", "payload", "source_empty", "empty_payload", source=self.name)
+                )
+                return [], audit_log
 
             fields: dict[str, object] = {
                 "emails": self._extract_emails(payload),
@@ -70,10 +80,24 @@ class NotesSource:
                 "urls": self._extract_urls(payload),
                 "skills": self._extract_skills(payload),
             }
-            return [RawRecord(source=self.name, raw_fields=fields)]
+            for field_name, values in fields.items():
+                if not values:
+                    audit_log.append(
+                        make_event(
+                            "extract",
+                            field_name,
+                            "field_missing",
+                            "no_values_recognized",
+                            source=self.name,
+                        )
+                    )
+            return [RawRecord(source=self.name, raw_fields=fields)], audit_log
         except Exception as e:  # recognition must never abort the pipeline
             logger.warning("NotesSource failed to recognize payload: %s", e)
-            return []
+            audit_log.append(
+                make_event("extract", "payload", "source_failed", "recognition_failed", source=self.name, error=str(e))
+            )
+            return [], audit_log
 
     # --- contact recognition (pattern-based) ---------------------------------
 
