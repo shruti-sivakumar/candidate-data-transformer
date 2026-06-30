@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.13.4",
     "python-dateutil>=2.9.0.post0",
     "requests>=2.34.2",
+    "streamlit>=1.46.1",
     "typer>=0.26.8",
 ]
 
