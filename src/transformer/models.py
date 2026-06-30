@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Generic, Literal, Protocol, TypeVar, runtime_checkable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 
@@ -16,18 +16,27 @@ class TrackedValue(BaseModel, Generic[T]):
     method: Method
     confidence: float
 
-    model_config = {"frozen": True}
+    model_config = ConfigDict(frozen=True)
 
 
 class RawRecord(BaseModel):
-    """A raw record from a source, with the source's own vocabulary."""
+    """A raw record from a source, with the source's own vocabulary.
+
+    Frozen at the attribute level. By contract, downstream modules READ
+    raw_fields and never mutate it in place — Pydantic cannot deep-freeze
+    a dict, so this discipline is load-bearing for determinism.
+    """
+
     source: str
     raw_fields: dict[str, object]
+
+    model_config = ConfigDict(frozen=True)
 
 
 @runtime_checkable
 class Source(Protocol):
     """The protocol every adapter must satisfy (structural, no inheritance)."""
+
     name: str
     trust: float
 
@@ -37,45 +46,61 @@ class Source(Protocol):
 
 class Location(BaseModel):
     """A location with city, region, and country."""
+
     city: str | None = None
     region: str | None = None
     country: str | None = None  # ISO-3166 alpha-2
 
+    model_config = ConfigDict(frozen=True)
+
 
 class Links(BaseModel):
     """A collection of links to the candidate's online presence."""
+
     linkedin: str | None = None
     github: str | None = None
     portfolio: str | None = None
-    other: list[str] = []
+    other: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(frozen=True)
 
 
 class ExperienceEntry(BaseModel):
     """An entry in the candidate's work experience."""
+
     company: str
     title: str
     start: str | None = None  # YYYY-MM
     end: str | None = None    # YYYY-MM, or None if current
     summary: str | None = None
 
+    model_config = ConfigDict(frozen=True)
+
 
 class EducationEntry(BaseModel):
     """An entry in the candidate's education."""
+
     institution: str
     degree: str | None = None
     field: str | None = None
     end_year: int | None = None
 
+    model_config = ConfigDict(frozen=True)
+
 
 class SkillEntry(BaseModel):
     """An entry in the candidate's skills."""
+
     name: str
     confidence: float
     sources: list[str]
 
+    model_config = ConfigDict(frozen=True)
+
 
 class ProjectEntry(BaseModel):
     """An entry in the candidate's projects."""
+
     name: str
     description: str | None = None
     url: str | None = None
@@ -83,9 +108,12 @@ class ProjectEntry(BaseModel):
     confidence: float
     sources: list[str]
 
+    model_config = ConfigDict(frozen=True)
+
 
 class CanonicalProfile(BaseModel):
     """A canonical profile for a candidate."""
+
     candidate_id: str
 
     full_name: TrackedValue[str]
@@ -102,7 +130,7 @@ class CanonicalProfile(BaseModel):
 
     overall_confidence: float
 
-    model_config = {"frozen": True}
+    model_config = ConfigDict(frozen=True)
 
     def get_provenance(self) -> list[dict[str, str]]:
         """Walk every tracked value in this profile and return the flat provenance list."""
@@ -133,5 +161,3 @@ class CanonicalProfile(BaseModel):
         for p in self.projects:     add_aggregated("projects", p.sources)
 
         return sorted(out, key=lambda r: (r["field"], r["source"]))
-
-    
