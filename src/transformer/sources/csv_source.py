@@ -8,6 +8,8 @@ import csv
 import io
 import logging
 
+from src.transformer.audit import make_event
+from src.transformer.models import AuditEvent
 from src.transformer.models import RawRecord
 
 logger = logging.getLogger(__name__)
@@ -24,12 +26,23 @@ class CSVSource:
     trust: float = 0.80
 
     def extract(self, payload: str) -> list[RawRecord]:
+        """Backward-compatible wrapper returning only records."""
+        records, _ = self.extract_with_audit(payload)
+        return records
+
+    def extract_with_audit(self, payload: str) -> tuple[list[RawRecord], list[AuditEvent]]:
         """Parse a CSV string into RawRecords.
 
         Each row becomes one RawRecord whose raw_fields are the row's
         column→value pairs, untouched. Returns [] on any parse failure
         rather than raising, so one bad source never aborts the pipeline.
         """
+        audit_log: list[AuditEvent] = []
+        if not payload or not payload.strip():
+            audit_log.append(
+                make_event("extract", "payload", "source_empty", "empty_payload", source=self.name)
+            )
+            return [], audit_log
         try:
             # restkey="_extra" buckets overflow columns into a list[str] under "_extra" —
             # intentionally different shape from real fields (all str). The normalize layer
@@ -43,8 +56,33 @@ class CSVSource:
                     key: (value.strip() if isinstance(value, str) else value)
                     for key, value in row.items()
                 }
+                if fields.get("_extra"):
+                    audit_log.append(
+                        make_event(
+                            "extract",
+                            "row._extra",
+                            "entry_flagged",
+                            "overflow_columns_preserved",
+                            source=self.name,
+                            row_index=len(records),
+                        )
+                    )
                 records.append(RawRecord(source=self.name, raw_fields=fields))
-            return records
+            if not records:
+                audit_log.append(
+                    make_event("extract", "records", "source_empty", "no_data_rows", source=self.name)
+                )
+            return records, audit_log
         except (csv.Error, ValueError) as e:
             logger.warning("CSVSource failed to parse payload: %s", e)
-            return []
+            audit_log.append(
+                make_event(
+                    "extract",
+                    "payload",
+                    "source_failed",
+                    "parse_failed",
+                    source=self.name,
+                    error=str(e),
+                )
+            )
+            return [], audit_log

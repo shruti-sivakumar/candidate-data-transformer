@@ -10,6 +10,8 @@ stay nested). No normalization or flattening happens here — that is Module
 import json
 import logging
 
+from src.transformer.audit import make_event
+from src.transformer.models import AuditEvent
 from src.transformer.models import RawRecord
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,11 @@ class ATSSource:
     trust: float = 0.90
 
     def extract(self, payload: str) -> list[RawRecord]:
+        """Backward-compatible wrapper returning only records."""
+        records, _ = self.extract_with_audit(payload)
+        return records
+
+    def extract_with_audit(self, payload: str) -> tuple[list[RawRecord], list[AuditEvent]]:
         """Parse an ATS JSON string into RawRecords.
 
         Accepts either a single candidate object or a JSON array of them.
@@ -35,11 +42,15 @@ class ATSSource:
         [] on any parse failure rather than raising, so one bad source never
         aborts the pipeline.
         """
+        audit_log: list[AuditEvent] = []
         try:
             data = json.loads(payload)
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning("ATSSource failed to parse payload: %s", e)
-            return []
+            audit_log.append(
+                make_event("extract", "payload", "source_failed", "parse_failed", source=self.name, error=str(e))
+            )
+            return [], audit_log
 
         # Normalize the container shape only: a single object becomes a
         # one-element list. This is container-level, not field-level — the
@@ -52,7 +63,17 @@ class ATSSource:
             logger.warning(
                 "ATSSource expected object or array, got %s", type(data).__name__
             )
-            return []
+            audit_log.append(
+                make_event(
+                    "extract",
+                    "payload",
+                    "source_failed",
+                    "unexpected_top_level_type",
+                    source=self.name,
+                    got=type(data).__name__,
+                )
+            )
+            return [], audit_log
 
         records: list[RawRecord] = []
         for candidate in candidates:
@@ -61,6 +82,20 @@ class ATSSource:
                     "ATSSource skipping non-object candidate entry: %s",
                     type(candidate).__name__,
                 )
+                audit_log.append(
+                    make_event(
+                        "extract",
+                        "candidate",
+                        "entry_dropped",
+                        "non_object_candidate",
+                        source=self.name,
+                        got=type(candidate).__name__,
+                    )
+                )
                 continue
             records.append(RawRecord(source=self.name, raw_fields=candidate))
-        return records
+        if not records:
+            audit_log.append(
+                make_event("extract", "records", "source_empty", "no_valid_candidates", source=self.name)
+            )
+        return records, audit_log

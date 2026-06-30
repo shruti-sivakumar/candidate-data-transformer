@@ -5,9 +5,12 @@ import pytest
 from pydantic import ValidationError
 
 from src.transformer.models import (
+    AggregatedValue,
     CanonicalProfile,
     Links,
     Location,
+    MergedEducationEntry,
+    MergedExperienceEntry,
     ProjectEntry,
     RawRecord,
     SkillEntry,
@@ -114,8 +117,8 @@ def _make_profile(**overrides) -> CanonicalProfile:
             value="Priya Sharma", source="ats_json", method="direct", confidence=0.9
         ),
         emails=[
-            TrackedValue[str](
-                value="priya@x.com", source="ats_json", method="direct", confidence=0.9
+            AggregatedValue[str](
+                value="priya@x.com", confidence=0.97, sources=["ats_json", "recruiter_csv"]
             )
         ],
         phones=[],
@@ -135,16 +138,33 @@ def _make_profile(**overrides) -> CanonicalProfile:
             value=None, source="ats_json", method="direct", confidence=0.5
         ),
         skills=[
-            SkillEntry(name="Python", confidence=0.97, sources=["ats_json", "github_api"])
+            SkillEntry(name="Python", confidence=0.97, sources=["ats_json", "github"])
         ],
-        experience=[],
-        education=[],
+        experience=[
+            MergedExperienceEntry(
+                company="Stripe",
+                title="Engineer",
+                start="2021-03",
+                confidence=0.91,
+                sources=["ats_json", "recruiter_csv"],
+            )
+        ],
+        education=[
+            MergedEducationEntry(
+                institution="Georgia Tech",
+                degree="B.S.",
+                field="CS",
+                end_year=2007,
+                confidence=0.9,
+                sources=["ats_json"],
+            )
+        ],
         projects=[
             ProjectEntry(
                 name="edgemind",
                 primary_language="Python",
                 confidence=0.7,
-                sources=["github_api"],
+                sources=["github"],
             )
         ],
         overall_confidence=0.85,
@@ -179,7 +199,7 @@ def test_provenance_includes_all_populated_fields():
     # Every field that has a value should appear at least once
     expected = {
         "full_name", "emails", "location", "links", "headline",
-        "years_experience", "skills", "projects",
+        "years_experience", "skills", "experience", "education", "projects",
     }
     assert expected.issubset(fields_seen)
 
@@ -190,7 +210,7 @@ def test_provenance_emits_one_row_per_source_for_aggregated_fields():
     skill_rows = [row for row in p.get_provenance() if row["field"] == "skills"]
     assert len(skill_rows) == 2
     sources = {row["source"] for row in skill_rows}
-    assert sources == {"ats_json", "github_api"}
+    assert sources == {"ats_json", "github"}
     # Aggregated fields use method='merged'
     assert all(row["method"] == "merged" for row in skill_rows)
 

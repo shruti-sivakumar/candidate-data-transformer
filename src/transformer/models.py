@@ -19,6 +19,16 @@ class TrackedValue(BaseModel, Generic[T]):
     model_config = ConfigDict(frozen=True)
 
 
+class AggregatedValue(BaseModel, Generic[T]):
+    """A merged value supported by one or more sources."""
+
+    value: T
+    confidence: float
+    sources: list[str]
+
+    model_config = ConfigDict(frozen=True)
+
+
 class RawRecord(BaseModel):
     """A raw record from a source, with the source's own vocabulary.
 
@@ -111,6 +121,33 @@ class ProjectEntry(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class MergedExperienceEntry(BaseModel):
+    """A merged work-experience entry supported by one or more sources."""
+
+    company: str
+    title: str | None = None
+    start: str | None = None
+    end: str | None = None
+    summary: str | None = None
+    confidence: float
+    sources: list[str]
+
+    model_config = ConfigDict(frozen=True)
+
+
+class MergedEducationEntry(BaseModel):
+    """A merged education entry supported by one or more sources."""
+
+    institution: str
+    degree: str | None = None
+    field: str | None = None
+    end_year: int | None = None
+    confidence: float
+    sources: list[str]
+
+    model_config = ConfigDict(frozen=True)
+
+
 class NormalizedProject(BaseModel):
     """A project as seen by one source, pre-aggregation. No confidence/sources —
     those are assigned in merge when projects are aggregated into ProjectEntry.
@@ -119,6 +156,18 @@ class NormalizedProject(BaseModel):
     description: str | None = None
     url: str | None = None
     primary_language: str | None = None
+
+    model_config = ConfigDict(frozen=True)
+
+
+class AuditEvent(BaseModel):
+    """A structured audit trail event emitted during normalization or merge."""
+
+    stage: str
+    field: str
+    kind: str
+    reason: str
+    details: dict[str, object] = Field(default_factory=dict)
 
     model_config = ConfigDict(frozen=True)
 
@@ -159,15 +208,15 @@ class CanonicalProfile(BaseModel):
     candidate_id: str
 
     full_name: TrackedValue[str]
-    emails: list[TrackedValue[str]]
-    phones: list[TrackedValue[str]]
+    emails: list[AggregatedValue[str]]
+    phones: list[AggregatedValue[str]]
     location: TrackedValue[Location]
     links: TrackedValue[Links]
     headline: TrackedValue[str | None]
     years_experience: TrackedValue[float | None]
     skills: list[SkillEntry]
-    experience: list[TrackedValue[ExperienceEntry]]
-    education: list[TrackedValue[EducationEntry]]
+    experience: list[MergedExperienceEntry]
+    education: list[MergedEducationEntry]
     projects: list[ProjectEntry]
 
     overall_confidence: float
@@ -192,14 +241,12 @@ class CanonicalProfile(BaseModel):
         add_tv("headline", self.headline)
         add_tv("years_experience", self.years_experience)
 
-        # Lists of TrackedValues
-        for tv in self.emails:     add_tv("emails", tv)
-        for tv in self.phones:     add_tv("phones", tv)
-        for tv in self.experience: add_tv("experience", tv)
-        for tv in self.education:  add_tv("education", tv)
-
-        # Aggregated multi-source types (each entry already carries sources[])
+        # Aggregated list fields
+        for e in self.emails:      add_aggregated("emails", e.sources)
+        for p in self.phones:      add_aggregated("phones", p.sources)
         for s in self.skills:       add_aggregated("skills", s.sources)
+        for e in self.experience:   add_aggregated("experience", e.sources)
+        for e in self.education:    add_aggregated("education", e.sources)
         for p in self.projects:     add_aggregated("projects", p.sources)
 
         return sorted(out, key=lambda r: (r["field"], r["source"]))
