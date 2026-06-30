@@ -6,8 +6,6 @@ from pydantic import ValidationError
 
 from src.transformer.models import (
     CanonicalProfile,
-    EducationEntry,
-    ExperienceEntry,
     Links,
     Location,
     ProjectEntry,

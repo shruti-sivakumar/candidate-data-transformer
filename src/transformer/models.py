@@ -111,6 +111,48 @@ class ProjectEntry(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class NormalizedProject(BaseModel):
+    """A project as seen by one source, pre-aggregation. No confidence/sources —
+    those are assigned in merge when projects are aggregated into ProjectEntry.
+    The per-source confidence lives on the wrapping TrackedValue."""
+    name: str
+    description: str | None = None
+    url: str | None = None
+    primary_language: str | None = None
+
+    model_config = ConfigDict(frozen=True)
+
+
+class NormalizedRecord(BaseModel):
+    """One source's data, mapped to canonical field names with normalized values.
+
+    Per-source and pre-merge: this is what a normalizer produces from a single
+    RawRecord. Every field is optional because each source provides only what it
+    has — absence (None / empty list) means "this source did not supply this
+    field," distinct from a source asserting an empty value. Every present value
+    is already a TrackedValue carrying base confidence (source_trust ×
+    method_trust × format_validity), computed here because normalize is where
+    format validity becomes known. Merge consumes N of these to build one
+    CanonicalProfile; it combines these base confidences but never mutates them.
+    """
+
+    source: str
+
+    full_name: TrackedValue[str] | None = None
+    emails: list[TrackedValue[str]] = Field(default_factory=list)
+    phones: list[TrackedValue[str]] = Field(default_factory=list)
+    location: TrackedValue[Location] | None = None
+    links: TrackedValue[Links] | None = None
+    headline: TrackedValue[str | None] | None = None
+    years_experience: TrackedValue[float | None] | None = None
+    skills: list[TrackedValue[str]] = Field(default_factory=list)
+    experience: list[TrackedValue[ExperienceEntry]] = Field(default_factory=list)
+    education: list[TrackedValue[EducationEntry]] = Field(default_factory=list)
+    projects: list[TrackedValue[NormalizedProject]] = Field(default_factory=list)
+
+    model_config = ConfigDict(frozen=True)
+
+
 class CanonicalProfile(BaseModel):
     """A canonical profile for a candidate."""
 
