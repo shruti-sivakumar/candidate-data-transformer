@@ -53,10 +53,19 @@ def normalize_notes_with_audit(record: RawRecord) -> tuple[NormalizedRecord, lis
 
     phones: list[TrackedValue] = []
     raw_phones = f.get("phones") or []
+    phone_default_region = f.get("phone_default_region")
+    if not isinstance(phone_default_region, str) or not phone_default_region.strip():
+        phone_default_region = None
+    phone_recognition_methods = f.get("phone_recognition_methods")
+    if not isinstance(phone_recognition_methods, dict):
+        phone_recognition_methods = {}
     for p in raw_phones:
-        val, valid = normalize_phone(p if isinstance(p, str) else None)
+        recognition_method = phone_recognition_methods.get(p)
+        default_region = phone_default_region if recognition_method == "region_bare" else None
+        val, valid = normalize_phone(p if isinstance(p, str) else None, default_region)
         if val is not None:
-            phones.append(_tracked(val, "regex", valid))
+            method = "inferred" if recognition_method == "region_bare" else "regex"
+            phones.append(_tracked(val, method, valid))
         elif p:
             audit_log.append(make_event("normalize", "phones", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=p))
     if not raw_phones:

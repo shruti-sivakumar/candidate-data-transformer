@@ -31,6 +31,7 @@ _URL_RE = re.compile(r"\bhttps?://[^\s,<>\"')]+", re.IGNORECASE)
 # separated by spaces/dashes/dots/parens. Intentionally requires the leading + so
 # bare numbers, comp figures, and dates are not candidates.
 _PHONE_CANDIDATE_RE = re.compile(r"\+\d[\d\s().-]{7,16}\d")
+_BARE_PHONE_CANDIDATE_RE = re.compile(r"(?<![\w+])\d{10}(?!\w)")
 
 
 class NotesSource:
@@ -48,12 +49,14 @@ class NotesSource:
         self,
         skill_vocabulary: Iterable[str] | None = None,
         taxonomy: SkillTaxonomy | None = None,
+        default_region: str = "IN",
     ) -> None:
         """Create a notes adapter.
 
         skill_vocabulary is kept for small tests/backward compatibility. In the
         real pipeline, taxonomy defaults to the committed skill snapshot.
         """
+        self.default_region = default_region
         if taxonomy is not None:
             self._taxonomy = taxonomy
         elif skill_vocabulary is None:
@@ -77,9 +80,12 @@ class NotesSource:
                 return [], audit_log
 
             skill_matches = self._extract_skill_matches(payload)
+            phone_fields = self._extract_phone_fields(payload)
             fields: dict[str, object] = {
                 "emails": self._extract_emails(payload),
-                "phones": self._extract_phones(payload),
+                "phones": phone_fields["phones"],
+                "phone_default_region": self.default_region,
+                "phone_recognition_methods": phone_fields["recognition_methods"],
                 "urls": self._extract_urls(payload),
                 "skills": [match["canonical"] for match in skill_matches],
                 "skill_matches": skill_matches,
@@ -99,7 +105,7 @@ class NotesSource:
                     )
                 )
             for field_name, values in fields.items():
-                if field_name == "skill_matches":
+                if field_name in {"skill_matches", "phone_default_region", "phone_recognition_methods"}:
                     continue
                 if not values:
                     audit_log.append(
@@ -130,6 +136,10 @@ class NotesSource:
         return _dedupe(u.rstrip(".,;:!?") for u in _URL_RE.findall(text))
 
     def _extract_phones(self, text: str) -> list[str]:
+        """Backward-compatible wrapper returning just the recognized values."""
+        return self._extract_phone_fields(text)["phones"]
+
+    def _extract_phone_fields(self, text: str) -> dict[str, object]:
         """Recognize phone candidates by shape, then keep only those the
         phonenumbers library confirms are valid. The raw matched substring is
         emitted as-found; E.164 normalization is Module 3's job, not the adapter's.
@@ -138,9 +148,10 @@ class NotesSource:
             import phonenumbers  # lazy: only needed when a candidate appears
         except ImportError:
             logger.warning("phonenumbers unavailable; skipping phone recognition")
-            return []
+            return {"phones": [], "recognition_methods": {}}
 
         kept: list[str] = []
+        recognition_methods: dict[str, str] = {}
         for raw in _PHONE_CANDIDATE_RE.findall(text):
             candidate = raw.strip()
             try:
@@ -149,7 +160,27 @@ class NotesSource:
                 continue
             if phonenumbers.is_valid_number(parsed):
                 kept.append(candidate)  # emit as-found, un-normalized
-        return _dedupe(kept)
+                recognition_methods.setdefault(candidate, "regex")
+
+        for raw in _BARE_PHONE_CANDIDATE_RE.findall(text):
+            candidate = raw.strip()
+            try:
+                parsed = phonenumbers.parse(candidate, self.default_region)
+            except phonenumbers.NumberParseException:
+                continue
+            if phonenumbers.is_valid_number(parsed):
+                kept.append(candidate)  # emit as-found, un-normalized
+                recognition_methods.setdefault(candidate, "region_bare")
+
+        phones = _dedupe(kept)
+        return {
+            "phones": phones,
+            "recognition_methods": {
+                phone: recognition_methods[phone]
+                for phone in phones
+                if phone in recognition_methods
+            },
+        }
 
     # --- skill recognition (n-gram candidates + taxonomy linking) ------------
 

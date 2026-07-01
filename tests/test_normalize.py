@@ -177,6 +177,18 @@ class TestNotesNormalizerBehavioral:
         assert r.emails[0].method == "regex"
         assert round(r.emails[0].confidence, 3) == 0.385  # 0.55 x 0.7 x 1.0
 
+    def test_bare_region_phone_uses_default_region_and_lower_confidence(self):
+        r = normalize_notes(
+            self._raw(
+                phones=["9876543210"],
+                phone_default_region="IN",
+                phone_recognition_methods={"9876543210": "region_bare"},
+            )
+        )
+        assert r.phones[0].value == "+919876543210"
+        assert r.phones[0].method == "inferred"
+        assert round(r.phones[0].confidence, 3) == 0.275  # 0.55 x 0.5 x 1.0
+
     def test_urls_classified_into_links(self):
         r = normalize_notes(self._raw(urls=[
             "https://linkedin.com/in/x", "https://github.com/x", "https://blog.x",

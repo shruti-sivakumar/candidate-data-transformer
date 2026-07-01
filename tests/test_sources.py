@@ -369,6 +369,18 @@ def test_notes_invalid_phone_shape_dropped():
     assert rf["phones"] == []
 
 
+def test_notes_valid_bare_indian_mobile_kept():
+    rf = NotesSource().extract("Candidate said WhatsApp is best at 9876543210 after 6pm.")[0].raw_fields
+    assert "9876543210" in rf["phones"]
+    assert rf["phone_default_region"] == "IN"
+    assert rf["phone_recognition_methods"]["9876543210"] == "region_bare"
+
+
+def test_notes_random_bare_ten_digit_number_rejected():
+    rf = NotesSource().extract("Comp note: internal ID 1111111111 was copied from the sheet.")[0].raw_fields
+    assert rf["phones"] == []
+
+
 def test_notes_url_trailing_period_stripped():
     # Regression: _URL_RE used to capture the trailing period as part of the URL.
     rf = NotesSource().extract("See https://kelsey.dev.")[0].raw_fields
