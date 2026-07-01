@@ -22,6 +22,14 @@ SPACY_MODEL_VERSION = "3.8.0"
 _TOKEN_RE = re.compile(r"\.?[A-Za-z0-9][A-Za-z0-9.+#-]*")
 LinkMethod = Literal["exact", "fuzzy"]
 
+# Prose corroboration for very short exact matches (see _short_prose_corroborated).
+# A single/double-character token in free prose ("R" in "— Riya R.") is far more
+# likely an initial, grade, or list marker than a deliberate skill claim. We only
+# accept such a token from prose when a general skill-context signal corroborates it.
+_LIST_DELIMITERS = frozenset(",;|/\n•·*-–—")  # comma/semicolon/bullet/dash/newline
+_SKILL_CONTEXT_CUES = ("skills:", "skill:", "stack:", "proficient in", "expert in")
+_CUE_WINDOW = 40
+
 
 @dataclass(frozen=True)
 class SkillCandidate:
@@ -71,6 +79,41 @@ def _is_dangerous_candidate(normalized: str) -> bool:
     """Return whether a candidate is too short to fuzzy match safely."""
     compact = normalized.replace(" ", "")
     return len(compact) <= 2
+
+
+def _needs_prose_corroboration(normalized: str) -> bool:
+    """Return whether a short exact prose match needs a corroborating skill signal.
+
+    Only *bare* one/two-character alphanumeric tokens ("r", "c", "go", "ml") are
+    ambiguous with initials/grades/list markers. A short token carrying skill
+    punctuation ("c#", "c++", ".net") is unmistakably a deliberate tech token, so it
+    keeps linking without corroboration.
+    """
+    compact = normalized.replace(" ", "")
+    return len(compact) <= 2 and not any(ch in "+#." for ch in compact)
+
+
+def _short_prose_corroborated(text: str, candidate: "SkillCandidate") -> bool:
+    """Return whether a very short prose match is corroborated as a skill mention.
+
+    Length is not enough evidence for a one/two-character exact match found in free
+    prose (a lone capital letter is more likely an initial, grade, or list marker).
+    General corroborating signals, none keyed to any specific word:
+      - the token is delimiter-flanked as a list item (a list delimiter or the text
+        boundary on both sides, e.g. "Go, R, Python"), OR
+      - it follows a skill-context cue ("skills:", "stack:", "proficient in", ...)
+        within a short window.
+    """
+    left = text[: candidate.start]
+    right = text[candidate.end :]
+    left_stripped = left.rstrip()
+    right_stripped = right.lstrip()
+    left_flanked = (not left_stripped) or left_stripped[-1] in _LIST_DELIMITERS
+    right_flanked = (not right_stripped) or right_stripped[0] in _LIST_DELIMITERS
+    if left_flanked and right_flanked:
+        return True
+    window = left[-_CUE_WINDOW:].casefold()
+    return any(cue in window for cue in _SKILL_CONTEXT_CUES)
 
 
 @lru_cache(maxsize=1)
@@ -212,6 +255,12 @@ class SkillTaxonomy:
                 continue
             exact = self.alias_to_canonical.get(candidate.normalized)
             if exact is not None:
+                # A very short exact match in prose needs a corroborating skill-context
+                # signal; otherwise a stray initial/grade ("R" in "— Riya R.") would be
+                # mined as a skill. This gate is prose-only: structured sources link via
+                # canonicalize/link_candidate, which never reach this path.
+                if _needs_prose_corroboration(candidate.normalized) and not _short_prose_corroborated(text, candidate):
+                    continue
                 canonical, score, method = exact, 100, "exact"
             else:
                 if _candidate_head_pos(candidate.text) not in {"NOUN", "PROPN"}:

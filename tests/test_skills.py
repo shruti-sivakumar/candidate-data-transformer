@@ -103,9 +103,10 @@ def test_unmatched_prose_candidate_is_honest_miss(tmp_path: Path):
 
 
 def test_prose_pos_gate_rejects_adjective_before_fuzzy(tmp_path: Path):
-    taxonomy = _taxonomy(tmp_path, [("Fluentd", ""), ("Go", "golang")])
-    matches = taxonomy.extract_from_text("Super fluent in Go.")
-    assert [match[0] for match in matches] == ["Go"]
+    taxonomy = _taxonomy(tmp_path, [("Fluentd", ""), ("Rust", "")])
+    matches = taxonomy.extract_from_text("Super fluent in Rust.")
+    # "fluent" (adjective) must not fuzzy-match Fluentd; Rust is still recognized.
+    assert [match[0] for match in matches] == ["Rust"]
 
 
 def test_prose_pos_gate_generalizes_beyond_observed_words(tmp_path: Path):
@@ -114,10 +115,42 @@ def test_prose_pos_gate_generalizes_beyond_observed_words(tmp_path: Path):
     assert [match[0] for match in taxonomy.extract_from_text("Strong in Python.")] == ["Python"]
 
 
-def test_prose_exact_allows_standalone_c_and_r(tmp_path: Path):
+def test_prose_short_exact_needs_corroboration(tmp_path: Path):
     taxonomy = _taxonomy(tmp_path, [("C", ""), ("R", ""), ("Go", "golang")])
-    matches = taxonomy.extract_from_text("Strong in C and R. Also Go.")
-    assert [match[0] for match in matches] == ["C", "R", "Go"]
+    # Bare one/two-letter tokens in ordinary prose carry no skill-claim evidence.
+    assert taxonomy.extract_from_text("Strong in C and R. Also Go.") == []
+
+
+def test_prose_short_exact_emitted_when_corroborated(tmp_path: Path):
+    taxonomy = _taxonomy(tmp_path, [("C", ""), ("R", ""), ("Go", "golang")])
+    # A delimited list / skills-context cue corroborates them as deliberate mentions.
+    matches = taxonomy.extract_from_text("Stack: Go, R, C.")
+    assert [match[0] for match in matches] == ["Go", "R", "C"]
+
+
+def test_prose_sign_off_initial_not_mined_as_skill():
+    taxonomy = default_skill_taxonomy()
+    # "— Riya R." must not invent skill "R" from the recruiter's initial.
+    assert "R" not in [match[0] for match in taxonomy.extract_from_text("— Riya R.")]
+
+
+def test_prose_skills_list_keeps_short_skill():
+    taxonomy = default_skill_taxonomy()
+    matches = [match[0] for match in taxonomy.extract_from_text("skills: Python, R, SQL")]
+    assert "R" in matches and "Python" in matches and "SQL" in matches
+
+
+def test_prose_longer_skills_unaffected_by_corroboration_gate():
+    taxonomy = default_skill_taxonomy()
+    assert "Kubernetes" in [m[0] for m in taxonomy.extract_from_text("Deployed Kubernetes in prod.")]
+    assert "Go" in [m[0] for m in taxonomy.extract_from_text("Stack: Go, Rust.")]
+
+
+def test_structured_short_skills_bypass_prose_corroboration():
+    # Structured sources declare skills explicitly and must keep exact-linking.
+    assert canonicalize_skill("R") == "R"
+    assert canonicalize_skill("C") == "C"
+    assert canonicalize_skill("Go") == "Go"
 
 
 def test_prose_fuzzy_typo_still_works_after_pos_gate(tmp_path: Path):

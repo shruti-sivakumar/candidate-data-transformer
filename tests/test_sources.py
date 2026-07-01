@@ -459,6 +459,18 @@ def test_notes_kelsey_recognizes_expected_skills():
     assert "Infrastructure" in rf["skills"]
 
 
+def test_notes_kelsey_does_not_invent_sign_off_initial():
+    # Regression (AUDIT A3): "— Riya R." must not be mined as skill "R".
+    rf = NotesSource().extract(sample_text("recruiter_notes/kelsey_hightower.txt"))[0].raw_fields
+    assert "R" not in rf["skills"]
+
+
+def test_notes_kelsey_skill_extraction_is_deterministic():
+    text = sample_text("recruiter_notes/kelsey_hightower.txt")
+    src = NotesSource()
+    assert src.extract(text)[0].raw_fields["skills"] == src.extract(text)[0].raw_fields["skills"]
+
+
 def test_notes_skill_audit_records_match_method():
     _, audit = NotesSource().extract_with_audit("Strong in Kubernets and platform engineering.")
     skill_events = [event for event in audit if event.field == "skills" and event.kind == "value_recognized"]

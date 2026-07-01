@@ -103,7 +103,10 @@ def test_project_can_include_confidence_and_provenance():
     profile = _kelsey_profile()
     config = ProjectionConfig.model_validate(
         {
-            "fields": [{"name": "name", "path": "full_name", "type": "string"}],
+            "fields": [
+                {"name": "name", "path": "full_name", "type": "string"},
+                {"name": "skill_names", "path": "skills[].name", "type": "array"},
+            ],
             "include_confidence": True,
             "include_provenance": True,
         }
@@ -113,8 +116,27 @@ def test_project_can_include_confidence_and_provenance():
 
     assert "confidence" in projected
     assert "provenance" in projected
-    assert projected["confidence"]["overall_confidence"] == profile.overall_confidence
+    assert sorted(projected["confidence"]) == ["name", "skill_names"]
+    assert projected["confidence"]["name"] == profile.full_name.confidence
+    assert projected["confidence"]["skill_names"] == [skill.confidence for skill in profile.skills]
     assert isinstance(projected["provenance"], list)
+
+
+def test_project_confidence_sidecar_uses_output_field_names_only():
+    profile = _kelsey_profile()
+    config = {
+        "fields": [
+            {"name": "primary_email", "path": "emails[0]", "type": "string"},
+            {"name": "city", "path": "location.city", "type": "string", "nullable": True},
+        ],
+        "include_confidence": True,
+    }
+
+    projected = project_profile(profile, config)
+
+    assert sorted(projected["confidence"]) == ["city", "primary_email"]
+    assert projected["confidence"]["primary_email"] == profile.emails[0].confidence
+    assert projected["confidence"]["city"] == profile.location.confidence
 
 
 def test_build_json_schema_marks_error_fields_required():

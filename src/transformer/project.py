@@ -79,6 +79,30 @@ def _confidence_view(profile: CanonicalProfile) -> dict[str, Any]:
     }
 
 
+def _confidence_path(path: str) -> str:
+    """Map an output path to the closest aligned confidence path."""
+    # A projected subfield of list entries, e.g. skills[].name, is supported by
+    # the confidence of each parent list entry.
+    if "[]." in path:
+        return path.split(".", 1)[0]
+    return path
+
+
+def _project_field_confidence(
+    field: FieldConfig,
+    confidence_view: dict[str, Any],
+) -> Any:
+    """Return the confidence value aligned with one projected output field."""
+    direct = jmespath.search(_confidence_path(field.path), confidence_view)
+    if direct is not None:
+        return direct
+
+    # Subfields of a tracked object, e.g. location.city, inherit the parent
+    # field's confidence because the object was normalized as one value.
+    root = field.path.split(".", 1)[0].split("[", 1)[0]
+    return confidence_view.get(root)
+
+
 def build_json_schema(config: ProjectionConfig) -> dict[str, Any]:
     """Build a JSON Schema from the projection config."""
     properties: dict[str, Any] = {}
@@ -123,7 +147,9 @@ def project_profile(
     """Project the canonical profile into the config-defined output shape."""
     parsed = config if isinstance(config, ProjectionConfig) else ProjectionConfig.model_validate(config)
     view = _plain_view(profile)
+    confidence_view = _confidence_view(profile)
     output: dict[str, Any] = {}
+    projected_confidence: dict[str, Any] = {}
 
     for field in parsed.fields:
         value = jmespath.search(field.path, view)
@@ -135,11 +161,13 @@ def project_profile(
                     f"Required field {field.name!r} missing at path {field.path!r}"
                 )
             output[field.name] = None
+            projected_confidence[field.name] = None
             continue
         output[field.name] = value
+        projected_confidence[field.name] = _project_field_confidence(field, confidence_view)
 
     if parsed.include_confidence:
-        output["confidence"] = _confidence_view(profile)
+        output["confidence"] = projected_confidence
     if parsed.include_provenance:
         output["provenance"] = profile.get_provenance()
 
