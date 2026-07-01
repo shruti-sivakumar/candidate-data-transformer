@@ -65,6 +65,76 @@ def test_multi_row_csv_yields_one_profile_per_candidate():
     assert by_name["Dana Okoro"]["emails"] == ["dana.okoro@gmail.com"]
 
 
+def test_duplicate_names_with_distinct_emails_do_not_merge():
+    first = (
+        "John,Smith,Backend Engineer,Acme,Backend Engineer,"
+        '"Boston, MA, USA",john.one@example.com,+1 617 555 0101,'
+        "https://linkedin.com/in/john-one,5,\"Python, PostgreSQL\",backend,"
+        "2026-06-10,2021-01,Wayfair,Engineer,2018-01,2020-12,"
+        "Northeastern University,B.S.,Computer Science,2017"
+    )
+    second = (
+        "John,Smith,Data Engineer,Northwind,Data Engineer,"
+        '"Chicago, IL, USA",john.two@example.com,+1 312 555 0102,'
+        "https://linkedin.com/in/john-two,6,\"Spark, SQL\",data,"
+        "2026-06-11,2020-03,Grubhub,Analyst,2017-01,2020-02,"
+        "University of Illinois,B.S.,Statistics,2016"
+    )
+
+    result = run_pipeline(PipelineInputs(csv_payload=_csv(first, second)))
+
+    assert isinstance(result, list), "same-name rows with distinct anchors must not collapse"
+    assert len(result) == 2
+    emails = sorted(profile["emails"] for profile in result)
+    assert emails == [["john.one@example.com"], ["john.two@example.com"]]
+
+
+def test_duplicate_names_with_same_phone_still_merge():
+    first = (
+        "John,Smith,Backend Engineer,Acme,Backend Engineer,"
+        '"Boston, MA, USA",,+1 617 555 0101,'
+        "https://linkedin.com/in/john-smith,5,\"Python\",backend,"
+        "2026-06-10,2021-01,Wayfair,Engineer,2018-01,2020-12,"
+        "Northeastern University,B.S.,Computer Science,2017"
+    )
+    second = (
+        "John,Smith,Backend Engineer,Acme,Backend Engineer,"
+        '"Boston, MA, USA",,+1 617 555 0101,'
+        "https://linkedin.com/in/john-smith,5,\"PostgreSQL\",backend,"
+        "2026-06-11,2021-01,Wayfair,Engineer,2018-01,2020-12,"
+        "Northeastern University,B.S.,Computer Science,2017"
+    )
+
+    result = run_pipeline(PipelineInputs(csv_payload=_csv(first, second)))
+
+    assert isinstance(result, dict), "matching normalized phone is a strong identity anchor"
+    assert result["full_name"] == "John Smith"
+    assert result["phones"] == ["+16175550101"]
+
+
+def test_unanchored_duplicate_names_from_same_source_do_not_merge():
+    first = (
+        "John,Smith,Backend Engineer,Acme,Backend Engineer,"
+        '"Boston, MA, USA",,,'
+        "5,\"Python\",backend,"
+        "2026-06-10,2021-01,Wayfair,Engineer,2018-01,2020-12,"
+        "Northeastern University,B.S.,Computer Science,2017"
+    )
+    second = (
+        "John,Smith,Data Engineer,Northwind,Data Engineer,"
+        '"Chicago, IL, USA",,,'
+        "6,\"Spark\",data,"
+        "2026-06-11,2020-03,Grubhub,Analyst,2017-01,2020-02,"
+        "University of Illinois,B.S.,Statistics,2016"
+    )
+
+    result = run_pipeline(PipelineInputs(csv_payload=_csv(first, second)))
+
+    assert isinstance(result, list), "same-source rows without email/phone anchors stay separate"
+    assert len(result) == 2
+    assert {profile["location"]["city"] for profile in result} == {"Boston", "Chicago"}
+
+
 def test_single_row_csv_keeps_single_object_shape():
     result = run_pipeline(PipelineInputs(csv_payload=_csv(_ROWS[0])))
 

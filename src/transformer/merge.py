@@ -649,28 +649,29 @@ def _candidate_id(
 def _identity_tokens(record: NormalizedRecord) -> set[tuple[str, str]]:
     """Return the atomic identity anchors a single record exposes.
 
-    These are exactly the signals ``_candidate_id`` keys on independently: an
-    email (its top fallback tier) and a full name (its weakest tier). Phone and
-    location never anchor identity on their own in that chain — they only ever
-    refine a name — so they are not emitted as standalone tokens here. Two
-    records that share any token are taken to describe the same candidate.
+    Only normalized email and phone are strong enough to join records before
+    merge. Name-only joins are deliberately excluded: at batch scale, two
+    unrelated people can share a full name, and silently unioning their fields is
+    worse than leaving a sparse record separate.
     """
     tokens: set[tuple[str, str]] = set()
     for email in record.emails:
         if email.value:
             tokens.add(("email", email.value.strip().casefold()))
-    if record.full_name and record.full_name.value:
-        tokens.add(("name", record.full_name.value.strip().casefold()))
+    for phone in record.phones:
+        if phone.value:
+            tokens.add(("phone", phone.value.strip()))
     return tokens
 
 
 def group_records_by_candidate(records: list[NormalizedRecord]) -> list[list[int]]:
     """Partition record indices into per-candidate groups before merge.
 
-    Records are transitively linked when they share an identity token (see
-    ``_identity_tokens``): e.g. an ATS row and a notes blob sharing an email, or
-    a GitHub profile sharing only a name with the CSV row that also carries the
-    email. A record with no identity signal at all becomes its own group.
+    Records are transitively linked only when they share a strong identity token
+    (see ``_identity_tokens``): normalized email or normalized phone. Name never
+    anchors identity. Sparse records without a strong token can attach only when
+    the bundle context is unambiguous: either there is exactly one anchored group,
+    or there are no anchors and each source contributed at most one record.
 
     Groups (and the records within them) preserve first-appearance order so the
     downstream single-candidate pipeline runs deterministically. This is the
@@ -691,12 +692,29 @@ def group_records_by_candidate(records: list[NormalizedRecord]) -> list[list[int
             parent[max(ra, rb)] = min(ra, rb)
 
     token_owner: dict[tuple[str, str], int] = {}
+    record_tokens: list[set[tuple[str, str]]] = []
     for index, record in enumerate(records):
-        for token in _identity_tokens(record):
+        tokens = _identity_tokens(record)
+        record_tokens.append(tokens)
+        for token in tokens:
             if token in token_owner:
                 union(index, token_owner[token])
             else:
                 token_owner[token] = index
+
+    anchored_roots = {find(i) for i, tokens in enumerate(record_tokens) if tokens}
+    unanchored = [i for i, tokens in enumerate(record_tokens) if not tokens]
+    if len(anchored_roots) == 1:
+        anchored_root = next(iter(anchored_roots))
+        for index in unanchored:
+            union(index, anchored_root)
+    elif not anchored_roots:
+        source_counts: dict[str, int] = defaultdict(int)
+        for record in records:
+            source_counts[record.source] += 1
+        if source_counts and max(source_counts.values()) == 1:
+            for index in range(1, len(records)):
+                union(index, 0)
 
     groups: dict[int, list[int]] = {}
     order: list[int] = []

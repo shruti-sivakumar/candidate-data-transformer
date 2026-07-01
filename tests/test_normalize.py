@@ -163,6 +163,12 @@ class TestGitHubNormalizerBehavioral:
         r = normalize_github(self._raw(profile={"name": "A", "bio": "I train nets."}))
         assert r.headline.value == "I train nets."
 
+    def test_public_profile_email_is_kept(self):
+        r = normalize_github(self._raw(profile={"name": "A", "email": "Dev@Example.COM"}))
+        assert [email.value for email in r.emails] == ["dev@example.com"]
+        assert r.emails[0].method == "direct"
+        assert round(r.emails[0].confidence, 3) == 0.7
+
 
 # ---------------------------------------------------------------------------
 # Behavioral — Notes normalizer

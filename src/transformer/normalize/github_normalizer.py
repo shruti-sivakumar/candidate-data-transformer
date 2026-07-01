@@ -17,7 +17,7 @@ from src.transformer.models import (
     RawRecord,
     TrackedValue,
 )
-from src.transformer.normalize.formats import classify_location, clean_string, normalize_url
+from src.transformer.normalize.formats import classify_location, clean_string, normalize_email, normalize_url
 from src.transformer.normalize.skills import canonicalize_skill
 
 _SOURCE = "github"
@@ -62,6 +62,16 @@ def normalize_github_with_audit(record: RawRecord) -> tuple[NormalizedRecord, li
         headline = _tracked(bio, "direct", 1.0)
     else:
         audit_log.append(make_event("normalize", "headline", "field_missing", "source_field_absent", source=_SOURCE))
+
+    # public profile email, when GitHub exposes one
+    emails: list[TrackedValue] = []
+    email_val, email_valid = normalize_email(profile.get("email") if isinstance(profile.get("email"), str) else None)
+    if email_val is not None:
+        emails.append(_tracked(email_val, "direct", email_valid))
+    elif profile.get("email"):
+        audit_log.append(make_event("normalize", "emails", "value_dropped", "failed_normalization", source=_SOURCE, raw_value=profile.get("email")))
+    else:
+        audit_log.append(make_event("normalize", "emails", "field_missing", "source_field_absent", source=_SOURCE))
 
     # location: GitHub location is usually a bare city (positional parse handles it)
     location = None
@@ -148,7 +158,7 @@ def normalize_github_with_audit(record: RawRecord) -> tuple[NormalizedRecord, li
     return NormalizedRecord(
         source=_SOURCE,
         full_name=full_name,
-        emails=[],               # GitHub profile email is usually null in fixtures
+        emails=emails,
         phones=[],
         location=location,
         links=links,
