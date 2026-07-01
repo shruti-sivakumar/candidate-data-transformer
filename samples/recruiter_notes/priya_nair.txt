@@ -1,0 +1,10 @@
+6/2 — intro call, ~35 min. Priya came recommended by Dev on our infra team. She's at Fathom Robotics now owning their internal platform layer, and before that spent ~4.5 yrs at Cloudera on the data platform side. Really thoughtful about where a platform team should draw its boundaries and where it shouldn't. She's fluent in Go and enjoys the low-level plumbing most people avoid.
+
+Skills: Docker, Terraform, Kubernetes, PostgreSQL
+
+Contact: priya.nair@gmail.com / +1 415 555 0173
+LinkedIn: https://linkedin.com/in/priya-nair
+
+Comp: current base ~$240k plus equity. Not actively looking but open to a staff platform role with real ownership. Wants to understand on-call load before anything else. — Dev K.
+
+6/14 — quick follow-up by email. She asked about team size and how greenfield the platform mandate is. Sending the JD this week. — Dev K.

@@ -1,0 +1,2 @@
+first_name,last_name,headline,current_company,current_title,location,email,phone,linkedin_url,years_experience,top_skills,tags,date_added,current_title_start,prev_company,prev_title,prev_start,prev_end,education_institution,education_degree,education_field,education_end_year
+Sam,Lindqvist,"Backend Engineer | JVM & containers",Norsk Data,Backend Engineer,"Oslo, Norway",,N/A,https://linkedin.com/in/sam-lindqvist,twelve,"Java, Kotlin, Docker",backend,2026-06-11,not-a-date,Telenor,Software Engineer,2016-03,2021-09,University of Oslo,M.Sc.,Informatics,unknown

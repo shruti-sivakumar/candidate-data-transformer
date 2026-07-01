@@ -1,0 +1,69 @@
+{
+  "id": 71553001,
+  "first_name": "Priya",
+  "last_name": "Nair",
+  "company": "Fathom Robotics",
+  "title": "Senior Platform Engineer",
+  "created_at": "2026-05-28T09:14:02.000Z",
+  "updated_at": "2026-06-02T12:31:47.000Z",
+  "last_activity": "2026-06-02T12:31:47.000Z",
+  "is_private": false,
+  "photo_url": null,
+  "attachments": [],
+  "application_ids": [
+    71553001
+  ],
+  "phone_numbers": [
+    {
+      "value": "+1-415-555-0173",
+      "type": "mobile"
+    }
+  ],
+  "addresses": [
+    {
+      "value": "San Francisco, CA, USA",
+      "type": "home"
+    }
+  ],
+  "email_addresses": [
+    {
+      "value": "priya.nair@gmail.com",
+      "type": "personal"
+    }
+  ],
+  "website_addresses": [
+    {
+      "value": "https://github.com/priyanair",
+      "type": "personal"
+    }
+  ],
+  "social_media_addresses": [
+    {
+      "value": "https://linkedin.com/in/priya-nair",
+      "type": "linkedin"
+    }
+  ],
+  "employments": [
+    {
+      "company_name": "Fathom Robotics",
+      "title": "Senior Platform Engineer",
+      "start_date": "2022-01",
+      "end_date": null
+    },
+    {
+      "company_name": "Cloudera",
+      "title": "Software Engineer",
+      "start_date": "2017-08",
+      "end_date": "2021-12"
+    }
+  ],
+  "educations": [
+    {
+      "school_name": "University of Illinois Urbana-Champaign",
+      "degree": "Bachelor of Science",
+      "discipline": "Computer Science",
+      "start_date": "2012",
+      "end_date": "2016"
+    }
+  ]
+}

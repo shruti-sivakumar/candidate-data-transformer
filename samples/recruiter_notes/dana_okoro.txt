@@ -1,0 +1,8 @@
+6/9 — cold outreach reply, quick 20 min call. Dana came in through a referral from someone on the data team. Currently a backend engineer at a mid-size fintech, ~6 yrs in. Spent most of that time on payments and ledger services. Came across as pragmatic and calm — the kind of person who has debugged a lot of production incidents. She's fluent in Go from an older service but works mostly in Python now.
+
+Skills: Python, Django, PostgreSQL, Redis
+
+Contact: dana.okoro@gmail.com / +1 646 555 0121
+LinkedIn: https://linkedin.com/in/dana-okoro
+
+Comp: base ~$190k, open to a senior backend role. Wants remote-first and a team that takes testing seriously. Flagged she can't start until after August. — Referral via Sam.

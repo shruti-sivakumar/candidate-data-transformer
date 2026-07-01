@@ -1,0 +1,8 @@
+6/5 — first call, ~30 min. Marcus reached out through the careers page and Nadia flagged him as strong. He's a senior frontend engineer at Loomly, before that at Bumble for about 3.5 yrs. Deep on the rendering and state side — he walked through a big migration he led off a legacy stack. He's fluent in Go for a couple of internal tools but frontend is clearly where his heart is.
+
+Stack: React, Node.js, TypeScript, Redis
+
+Contact: marcus.bell@gmail.com / +1 512 555 0198
+LinkedIn: https://linkedin.com/in/marcus-bell
+
+Comp: base ~$205k. He'd move for a lead-level frontend role. Wants to hear about design-system ownership. — Nadia P.

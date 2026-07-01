@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "avatar_url": "https://avatars.githubusercontent.com/u/8842011?v=4",
+    "bio": "Platform engineer. I like small interfaces and boring infrastructure.",
+    "blog": "https://priyanair.dev",
+    "company": "@fathom-robotics",
+    "email": null,
+    "followers": 812,
+    "following": 44,
+    "hireable": true,
+    "html_url": "https://github.com/priyanair",
+    "id": 8842011,
+    "location": "San Francisco, CA",
+    "login": "priyanair",
+    "name": "Priya Nair",
+    "public_gists": 12,
+    "public_repos": 37,
+    "type": "User"
+  },
+  "repos": [
+    {
+      "name": "kube-leaser",
+      "description": "A small controller for leasing Kubernetes namespaces to CI jobs.",
+      "html_url": "https://github.com/priyanair/kube-leaser",
+      "language": "Go",
+      "fork": false,
+      "topics": ["kubernetes", "controller"]
+    },
+    {
+      "name": "pgbench-lab",
+      "description": "Reproducible PostgreSQL benchmarking harness.",
+      "html_url": "https://github.com/priyanair/pgbench-lab",
+      "language": "Python",
+      "fork": false,
+      "topics": ["postgresql", "benchmarks"]
+    },
+    {
+      "name": "awesome-platform",
+      "description": "A fork I keep for notes.",
+      "html_url": "https://github.com/priyanair/awesome-platform",
+      "language": "Markdown",
+      "fork": true,
+      "topics": []
+    },
+    {
+      "name": "ratel",
+      "description": "Experimental rate limiter written for fun.",
+      "html_url": "https://github.com/priyanair/ratel",
+      "language": "Rust",
+      "fork": false,
+      "topics": ["rate-limiting"]
+    }
+  ]
+}
