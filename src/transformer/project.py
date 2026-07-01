@@ -1,6 +1,7 @@
 """Module 6: project the canonical profile into a config-defined output shape."""
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal
 
 import jmespath
@@ -9,6 +10,8 @@ from jsonschema import validate
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from src.transformer.models import CanonicalProfile
+
+logger = logging.getLogger(__name__)
 
 MissingPolicy = Literal["null", "omit", "error"]
 FieldType = Literal["string", "number", "integer", "boolean", "object", "array"]
@@ -32,6 +35,12 @@ class FieldConfig(BaseModel):
 
     Vocabularies are distinguished by the presence of an explicit ``name`` key:
     legacy configs always carry one, PS configs never do.
+
+    ``normalize`` (a PS-example per-field key) is recognized but treated as a
+    no-op by the projection layer: normalization is applied once, upstream, in
+    the canonical layer (E.164 phones, canonical skills), so the projection is a
+    read-only transform. ``project_profile`` logs when it defers a ``normalize``
+    request rather than silently ignoring it.
     """
 
     name: str
@@ -47,10 +56,18 @@ class FieldConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _accept_ps_vocabulary(cls, data: Any) -> Any:
-        """Translate PS-example field keys into the internal name/path shape."""
+        """Translate PS-example field keys into the internal name/path shape.
+
+        This is the single place field-level ``on_missing`` precedence is
+        resolved. ``ProjectionConfig`` only forwards the config-level default
+        (via ``_default_on_missing``); it never decides precedence itself.
+        """
         if not isinstance(data, dict):
             return data
         data = dict(data)
+
+        # Config-level default forwarded by ProjectionConfig; lowest precedence.
+        default_on_missing = data.pop("_default_on_missing", None)
 
         # PS vocabulary: no explicit output "name". "path" is the output field
         # name; "from" (when present) is the canonical source path, otherwise
@@ -60,11 +77,15 @@ class FieldConfig(BaseModel):
             data["path"] = data.pop("from", output_name)
             data["name"] = output_name
 
-        # PS "required: true" means "must be present" -> error on missing, but an
-        # explicit per-field on_missing (legacy or PS) always wins.
+        # on_missing precedence, highest first:
+        #   explicit per-field on_missing > required:true (=> "error")
+        #   > config-level default > the model default ("null").
         required = data.pop("required", None)
-        if required and "on_missing" not in data:
-            data["on_missing"] = "error"
+        if "on_missing" not in data:
+            if required:
+                data["on_missing"] = "error"
+            elif default_on_missing is not None:
+                data["on_missing"] = default_on_missing
 
         # PS "string[]" (and any "<type>[]") is an array for schema building.
         field_type = data.get("type")
@@ -85,8 +106,13 @@ class ProjectionConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _apply_default_on_missing(cls, data: Any) -> Any:
-        """Let the PS top-level ``on_missing`` act as a per-field default."""
+    def _distribute_on_missing_default(cls, data: Any) -> Any:
+        """Forward the PS top-level ``on_missing`` down as a per-field default.
+
+        Precedence between this default, a per-field ``on_missing``, and
+        ``required`` is resolved entirely in ``FieldConfig``; this method only
+        plumbs the value through so the two validators can never disagree.
+        """
         if not isinstance(data, dict):
             return data
         data = dict(data)
@@ -96,18 +122,12 @@ class ProjectionConfig(BaseModel):
         if default_policy is None or not isinstance(fields, list):
             return data
 
-        # A per-field on_missing (or required, which implies "error") overrides
-        # the top-level default; only fields specifying neither inherit it.
-        patched: list[Any] = []
-        for field in fields:
-            if (
-                isinstance(field, dict)
-                and "on_missing" not in field
-                and not field.get("required")
-            ):
-                field = {**field, "on_missing": default_policy}
-            patched.append(field)
-        data["fields"] = patched
+        data["fields"] = [
+            {**field, "_default_on_missing": default_policy}
+            if isinstance(field, dict) and "_default_on_missing" not in field
+            else field
+            for field in fields
+        ]
         return data
 
 
@@ -222,6 +242,14 @@ def project_profile(
     projected_confidence: dict[str, Any] = {}
 
     for field in parsed.fields:
+        if field.normalize is not None:
+            logger.info(
+                "Field %r requested normalize=%r; projection defers it as a no-op "
+                "(normalization is applied at the canonical layer).",
+                field.name,
+                field.normalize,
+            )
+
         value = jmespath.search(field.path, view)
         if value is None:
             if field.on_missing == "omit":

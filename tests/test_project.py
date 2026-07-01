@@ -187,6 +187,27 @@ def test_ps_vocabulary_normalizes_to_internal_name_and_path():
     assert by_name["primary_email"].on_missing == "omit"
 
 
+def test_ps_normalize_is_a_logged_no_op(caplog):
+    # "normalize" is a recognized PS key, but normalization happens in the
+    # canonical layer, so the projection defers it — loudly, not silently.
+    profile = _kelsey_profile()
+    config = {
+        "fields": [
+            {"path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164"},
+        ],
+        "on_missing": "null",
+    }
+
+    with caplog.at_level("INFO", logger="src.transformer.project"):
+        projected = project_profile(profile, config)
+
+    assert projected["phone"] == "+12025550142"
+    assert any(
+        "normalize" in record.message and "phone" in record.message
+        for record in caplog.records
+    )
+
+
 def test_ps_top_level_on_missing_is_overridden_by_per_field():
     config = ProjectionConfig.model_validate(
         {
