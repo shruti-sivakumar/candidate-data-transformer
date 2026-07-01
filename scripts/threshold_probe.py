@@ -22,9 +22,14 @@ from __future__ import annotations
 
 import csv
 import statistics
+import sys
 from pathlib import Path
 
 from rapidfuzz import fuzz, process
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from src.transformer.normalize.skills import (
     FUZZY_MATCH_THRESHOLD,
@@ -33,7 +38,6 @@ from src.transformer.normalize.skills import (
     normalize_alias,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = REPO_ROOT / "docs"
 TAX = default_skill_taxonomy()
 
