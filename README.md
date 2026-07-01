@@ -1,5 +1,7 @@
 # candidate-data-transformer
 
+Sample generated outputs are checked in under `samples/output/` for reviewers who want to inspect results without running the pipeline.
+
 ## Setup
 
 Install dependencies with `uv`:

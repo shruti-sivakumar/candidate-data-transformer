@@ -1,0 +1,395 @@
+[
+  {
+    "candidate_id": "cand_272b371a",
+    "education": [],
+    "emails": [
+      "priya.nair@gmail.com"
+    ],
+    "experience": [
+      {
+        "company": "Cloudera",
+        "end": "2021-12",
+        "start": "2017-08",
+        "summary": null,
+        "title": "Software Engineer"
+      },
+      {
+        "company": "Fathom Robotics",
+        "end": null,
+        "start": "2022-01",
+        "summary": null,
+        "title": "Senior Platform Engineer"
+      }
+    ],
+    "full_name": "Priya Nair",
+    "headline": "Senior Platform Engineer | Kubernetes & Go",
+    "links": {
+      "github": null,
+      "linkedin": "https://linkedin.com/in/priya-nair",
+      "other": [],
+      "portfolio": null
+    },
+    "location": {
+      "city": "San Francisco",
+      "country": "US",
+      "region": "CA"
+    },
+    "overall_confidence": 0.8,
+    "phones": [
+      "+14155550173"
+    ],
+    "projects": [],
+    "provenance": [
+      {
+        "field": "emails",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "full_name",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "headline",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "links",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "location",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "phones",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "years_experience",
+        "method": "direct",
+        "source": "recruiter_csv"
+      }
+    ],
+    "skills": [
+      {
+        "confidence": 0.8,
+        "name": "Go",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "Kubernetes",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "PostgreSQL",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "Python",
+        "sources": [
+          "recruiter_csv"
+        ]
+      }
+    ],
+    "years_experience": 9.0
+  },
+  {
+    "candidate_id": "cand_b1afb727",
+    "education": [],
+    "emails": [
+      "marcus.bell@gmail.com"
+    ],
+    "experience": [
+      {
+        "company": "Bumble",
+        "end": "2023-01",
+        "start": "2019-05",
+        "summary": null,
+        "title": "Frontend Engineer"
+      },
+      {
+        "company": "Loomly",
+        "end": null,
+        "start": "2023-02",
+        "summary": null,
+        "title": "Senior Frontend Engineer"
+      }
+    ],
+    "full_name": "Marcus Bell",
+    "headline": "Frontend Engineer | React & TypeScript",
+    "links": {
+      "github": null,
+      "linkedin": "https://linkedin.com/in/marcus-bell",
+      "other": [],
+      "portfolio": null
+    },
+    "location": {
+      "city": "Austin",
+      "country": "US",
+      "region": "TX"
+    },
+    "overall_confidence": 0.8,
+    "phones": [
+      "+15125550198"
+    ],
+    "projects": [],
+    "provenance": [
+      {
+        "field": "emails",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "full_name",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "headline",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "links",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "location",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "phones",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "years_experience",
+        "method": "direct",
+        "source": "recruiter_csv"
+      }
+    ],
+    "skills": [
+      {
+        "confidence": 0.8,
+        "name": "GraphQL",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "Node.js",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "React",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "TypeScript",
+        "sources": [
+          "recruiter_csv"
+        ]
+      }
+    ],
+    "years_experience": 7.0
+  },
+  {
+    "candidate_id": "cand_5c63d8a8",
+    "education": [],
+    "emails": [
+      "dana.okoro@gmail.com"
+    ],
+    "experience": [
+      {
+        "company": "Amazon",
+        "end": "2020-04",
+        "start": "2016-06",
+        "summary": null,
+        "title": "Engineer"
+      },
+      {
+        "company": "Helix",
+        "end": null,
+        "start": "2020-05",
+        "summary": null,
+        "title": "Data Engineer"
+      }
+    ],
+    "full_name": "Dana Okoro",
+    "headline": "Data Engineer",
+    "links": {
+      "github": null,
+      "linkedin": "https://linkedin.com/in/dana-okoro",
+      "other": [],
+      "portfolio": null
+    },
+    "location": {
+      "city": "Seattle",
+      "country": "US",
+      "region": "WA"
+    },
+    "overall_confidence": 0.8,
+    "phones": [
+      "+16465550121"
+    ],
+    "projects": [],
+    "provenance": [
+      {
+        "field": "emails",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "experience",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "full_name",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "headline",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "links",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "location",
+        "method": "direct",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "phones",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "skills",
+        "method": "merged",
+        "source": "recruiter_csv"
+      },
+      {
+        "field": "years_experience",
+        "method": "direct",
+        "source": "recruiter_csv"
+      }
+    ],
+    "skills": [
+      {
+        "confidence": 0.8,
+        "name": "Apache Spark",
+        "sources": [
+          "recruiter_csv"
+        ]
+      },
+      {
+        "confidence": 0.8,
+        "name": "Python",
+        "sources": [
+          "recruiter_csv"
+        ]
+      }
+    ],
+    "years_experience": 7.0
+  }
+]

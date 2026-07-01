@@ -1,0 +1,46 @@
+{
+  "city": "Washington",
+  "confidence": {
+    "city": 0.833,
+    "id": 1.0,
+    "name": 0.994,
+    "primary_email": 0.9877,
+    "roles": [
+      0.98,
+      0.98
+    ],
+    "skill_names": [
+      0.877,
+      0.877,
+      0.87,
+      0.8,
+      0.385,
+      0.385
+    ]
+  },
+  "id": "cand_1a37fa2b",
+  "name": "Kelsey Hightower",
+  "primary_email": "kelsey.hightower@gmail.com",
+  "roles": [
+    {
+      "company": "Google LLC",
+      "end": "2021-02",
+      "start": "2014-05",
+      "title": "Staff Developer Advocate"
+    },
+    {
+      "company": "Stripe Inc.",
+      "end": null,
+      "start": "2021-03",
+      "title": "Staff Platform Engineer"
+    }
+  ],
+  "skill_names": [
+    "Kubernetes",
+    "Platform Engineering",
+    "Go",
+    "Distributed Systems",
+    "GitHub",
+    "Infrastructure"
+  ]
+}

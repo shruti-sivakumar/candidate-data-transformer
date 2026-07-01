@@ -1,0 +1,339 @@
+{
+  "candidate_id": "cand_1a37fa2b",
+  "education": [
+    {
+      "degree": null,
+      "end_year": 2007,
+      "field": "Computer Science",
+      "institution": "Georgia Institute of Technology"
+    }
+  ],
+  "emails": [
+    "kelsey.hightower@gmail.com",
+    "kelsey@stripe.com"
+  ],
+  "experience": [
+    {
+      "company": "Google LLC",
+      "end": "2021-02",
+      "start": "2014-05",
+      "summary": null,
+      "title": "Staff Developer Advocate"
+    },
+    {
+      "company": "Stripe Inc.",
+      "end": null,
+      "start": "2021-03",
+      "summary": null,
+      "title": "Staff Platform Engineer"
+    }
+  ],
+  "full_name": "Kelsey Hightower",
+  "headline": "Staff Engineer at Stripe | Kubernetes & Platform Infra",
+  "links": {
+    "github": "https://github.com/kelseyhightower",
+    "linkedin": "https://linkedin.com/in/kelsey-hightower",
+    "other": [],
+    "portfolio": null
+  },
+  "location": {
+    "city": "Washington",
+    "country": "US",
+    "region": "DC"
+  },
+  "overall_confidence": 0.9242110000000001,
+  "phones": [
+    "+12025550142"
+  ],
+  "projects": [
+    {
+      "description": "Example code for the 12 Fractured Apps blog posts.",
+      "name": "12-fractured-apps",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/12-fractured-apps"
+    },
+    {
+      "description": null,
+      "name": "anthos-empathy-session",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/anthos-empathy-session"
+    },
+    {
+      "description": "api.ai package",
+      "name": "api",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/api"
+    },
+    {
+      "description": null,
+      "name": "apiai-istio-webhook",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/apiai-istio-webhook"
+    },
+    {
+      "description": "Cloud Function to generate Google ID tokens stored in Apigee encrypted Key Value Maps.",
+      "name": "apigee-refresh-id-token",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/apigee-refresh-id-token"
+    },
+    {
+      "description": "Example 12 Facter App",
+      "name": "app",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/app"
+    },
+    {
+      "description": "Example app with a healthz endpoint",
+      "name": "app-healthz",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/app-healthz"
+    },
+    {
+      "description": "Example app with a healthz endpoint",
+      "name": "app-healthz2",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/app-healthz2"
+    },
+    {
+      "description": null,
+      "name": "ato",
+      "primary_language": "Go",
+      "url": "https://github.com/kelseyhightower/ato"
+    }
+  ],
+  "provenance": [
+    {
+      "field": "education",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "education",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "emails",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "emails",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "emails",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "emails",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "emails",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "experience",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "experience",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "experience",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "experience",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "full_name",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "headline",
+      "method": "direct",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "links",
+      "method": "direct",
+      "source": "ats_json"
+    },
+    {
+      "field": "location",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "phones",
+      "method": "merged",
+      "source": "ats_json"
+    },
+    {
+      "field": "phones",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "phones",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "projects",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "github"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_csv"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "skills",
+      "method": "merged",
+      "source": "recruiter_notes"
+    },
+    {
+      "field": "years_experience",
+      "method": "direct",
+      "source": "recruiter_csv"
+    }
+  ],
+  "skills": [
+    {
+      "confidence": 0.877,
+      "name": "Kubernetes",
+      "sources": [
+        "recruiter_csv",
+        "recruiter_notes"
+      ]
+    },
+    {
+      "confidence": 0.877,
+      "name": "Platform Engineering",
+      "sources": [
+        "recruiter_csv",
+        "recruiter_notes"
+      ]
+    },
+    {
+      "confidence": 0.87,
+      "name": "Go",
+      "sources": [
+        "github",
+        "recruiter_csv"
+      ]
+    },
+    {
+      "confidence": 0.8,
+      "name": "Distributed Systems",
+      "sources": [
+        "recruiter_csv"
+      ]
+    },
+    {
+      "confidence": 0.385,
+      "name": "GitHub",
+      "sources": [
+        "recruiter_notes"
+      ]
+    },
+    {
+      "confidence": 0.385,
+      "name": "Infrastructure",
+      "sources": [
+        "recruiter_notes"
+      ]
+    }
+  ],
+  "years_experience": 12.0
+}

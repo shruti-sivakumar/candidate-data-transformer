@@ -1,0 +1,44 @@
+{
+  "fields": [
+    {
+      "name": "id",
+      "path": "candidate_id",
+      "type": "string",
+      "on_missing": "error"
+    },
+    {
+      "name": "name",
+      "path": "full_name",
+      "type": "string",
+      "on_missing": "error"
+    },
+    {
+      "name": "primary_email",
+      "path": "emails[0]",
+      "type": "string",
+      "nullable": true,
+      "on_missing": "null"
+    },
+    {
+      "name": "city",
+      "path": "location.city",
+      "type": "string",
+      "nullable": true,
+      "on_missing": "null"
+    },
+    {
+      "name": "skill_names",
+      "path": "skills[].name",
+      "type": "array",
+      "on_missing": "null"
+    },
+    {
+      "name": "roles",
+      "path": "experience[].{company: company, title: title, start: start, end: end}",
+      "type": "array",
+      "on_missing": "null"
+    }
+  ],
+  "include_confidence": true,
+  "include_provenance": false
+}
