@@ -17,10 +17,34 @@ _SAMPLE_BUNDLES = {
         "github": SAMPLES / "github/kelsey_hightower.json",
         "notes": SAMPLES / "recruiter_notes/kelsey_hightower.txt",
     },
+    "Priya Nair (all available sources)": {
+        "csv": SAMPLES / "recruiter_csv/priya_nair.csv",
+        "ats": SAMPLES / "ats_json/priya_nair.json",
+        "github": SAMPLES / "github/priya_nair.json",
+        "notes": SAMPLES / "recruiter_notes/priya_nair.txt",
+    },
     "Andrej Karpathy (structured + GitHub)": {
         "csv": SAMPLES / "recruiter_csv/andrej_karpathy.csv",
         "ats": SAMPLES / "ats_json/andrej_karpathy.json",
         "github": SAMPLES / "github/andrej_karpathy.json",
+        "notes": None,
+    },
+    "Sam Lindqvist (CSV + ATS only)": {
+        "csv": SAMPLES / "recruiter_csv/sam_lindqvist.csv",
+        "ats": SAMPLES / "ats_json/sam_lindqvist.json",
+        "github": None,
+        "notes": None,
+    },
+    "Marcus Bell (CSV + recruiter notes)": {
+        "csv": SAMPLES / "recruiter_csv/marcus_bell.csv",
+        "ats": None,
+        "github": None,
+        "notes": SAMPLES / "recruiter_notes/marcus_bell.txt",
+    },
+    "Multi-candidate CSV batch": {
+        "csv": SAMPLES / "recruiter_csv/multi_candidate.csv",
+        "ats": None,
+        "github": None,
         "notes": None,
     },
     "Custom uploads": {
