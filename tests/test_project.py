@@ -187,25 +187,68 @@ def test_ps_vocabulary_normalizes_to_internal_name_and_path():
     assert by_name["primary_email"].on_missing == "omit"
 
 
-def test_ps_normalize_is_a_logged_no_op(caplog):
-    # "normalize" is a recognized PS key, but normalization happens in the
-    # canonical layer, so the projection defers it — loudly, not silently.
+def test_normalize_canonical_transforms_a_raw_skill_value():
+    # Real (non-no-op) proof: feed a profile carrying a raw skill alias that
+    # upstream normalization would have canonicalized, and confirm the per-field
+    # normalize="canonical" actually rewrites it ("golang" -> "Go").
+    profile = _kelsey_profile()
+    raw_skills = [profile.skills[0].model_copy(update={"name": "golang"}), *profile.skills[1:]]
+    profile = profile.model_copy(update={"skills": raw_skills})
+
+    config = {
+        "fields": [
+            {"path": "raw", "from": "skills[0].name", "type": "string"},
+            {"path": "skills", "from": "skills[].name", "type": "string[]", "normalize": "canonical"},
+        ]
+    }
+
+    projected = project_profile(profile, config)
+
+    # Source path is genuinely raw...
+    assert projected["raw"] == "golang"
+    # ...and the normalized output has been canonicalized in place.
+    assert "golang" not in projected["skills"]
+    assert "Go" in projected["skills"]
+
+
+def test_normalize_unknown_identifier_raises():
     profile = _kelsey_profile()
     config = {
         "fields": [
-            {"path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164"},
-        ],
-        "on_missing": "null",
+            {"path": "phone", "from": "phones[0]", "type": "string", "normalize": "PIGLATIN"},
+        ]
     }
 
-    with caplog.at_level("INFO", logger="src.transformer.project"):
-        projected = project_profile(profile, config)
+    with pytest.raises(ProjectionError, match="unknown normalize"):
+        project_profile(profile, config)
 
-    assert projected["phone"] == "+12025550142"
-    assert any(
-        "normalize" in record.message and "phone" in record.message
-        for record in caplog.records
-    )
+
+def test_normalize_rejects_type_mismatch():
+    profile = _kelsey_profile()
+    config = {
+        "fields": [
+            # "E164" only applies to a scalar string, not an array field.
+            {"path": "phones", "from": "phones[].", "type": "array", "normalize": "E164"},
+        ]
+    }
+
+    with pytest.raises(ProjectionError, match="cannot apply to type"):
+        project_profile(profile, config)
+
+
+def test_config_without_normalize_is_unaffected():
+    profile = _kelsey_profile()
+    config = {
+        "fields": [
+            {"name": "name", "path": "full_name", "type": "string"},
+            {"name": "skill_names", "path": "skills[].name", "type": "array"},
+        ]
+    }
+
+    projected = project_profile(profile, config)
+
+    assert projected["name"] == "Kelsey Hightower"
+    assert "Go" in projected["skill_names"]
 
 
 def test_ps_top_level_on_missing_is_overridden_by_per_field():

@@ -1,8 +1,7 @@
 """Module 6: project the canonical profile into a config-defined output shape."""
 from __future__ import annotations
 
-import logging
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import jmespath
 from jsonschema import ValidationError as JsonSchemaValidationError
@@ -10,11 +9,21 @@ from jsonschema import validate
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from src.transformer.models import CanonicalProfile
-
-logger = logging.getLogger(__name__)
+from src.transformer.normalize.formats import normalize_country, normalize_phone
+from src.transformer.normalize.skills import canonicalize_skill
 
 MissingPolicy = Literal["null", "omit", "error"]
 FieldType = Literal["string", "number", "integer", "boolean", "object", "array"]
+
+# Per-field normalizers the projection can apply, keyed by the config identifier.
+# Each reuses an existing canonical-layer normalizer (no new normalization logic
+# here) and declares which declared field types it may be applied to. The tuple
+# normalizers return (value, validity); the projection only needs the value.
+_NORMALIZERS: dict[str, tuple[Callable[[str], Any], frozenset[str]]] = {
+    "E164": (lambda value: normalize_phone(value)[0], frozenset({"string"})),
+    "ISO3166": (lambda value: normalize_country(value)[0], frozenset({"string"})),
+    "canonical": (canonicalize_skill, frozenset({"string", "array"})),
+}
 
 
 class ProjectionError(ValueError):
@@ -36,11 +45,13 @@ class FieldConfig(BaseModel):
     Vocabularies are distinguished by the presence of an explicit ``name`` key:
     legacy configs always carry one, PS configs never do.
 
-    ``normalize`` (a PS-example per-field key) is recognized but treated as a
-    no-op by the projection layer: normalization is applied once, upstream, in
-    the canonical layer (E.164 phones, canonical skills), so the projection is a
-    read-only transform. ``project_profile`` logs when it defers a ``normalize``
-    request rather than silently ignoring it.
+    ``normalize`` (a PS-example per-field key) applies one of the canonical
+    normalizers to the projected value at projection time — ``"E164"`` (phones),
+    ``"canonical"`` (skills, scalar or array), ``"ISO3166"`` (countries). It is
+    validated against the field's declared ``type`` (see ``_NORMALIZERS``); an
+    unknown identifier or a type mismatch raises ``ProjectionError``. Because the
+    canonical layer already normalizes upstream, the call is usually idempotent,
+    but it is applied for real so a raw value would still be normalized.
     """
 
     name: str
@@ -230,6 +241,41 @@ def validate_projection(output: dict[str, Any], config: ProjectionConfig) -> Non
         raise ProjectionError(str(exc)) from exc
 
 
+def _resolve_normalizer(field: FieldConfig) -> Callable[[str], Any] | None:
+    """Return the scalar normalizer for a field's ``normalize`` key, or None.
+
+    Raises ProjectionError for an unknown identifier or a type mismatch (e.g.
+    ``"E164"`` on a non-string field), rather than silently skipping it.
+    """
+    if field.normalize is None:
+        return None
+    spec = _NORMALIZERS.get(field.normalize)
+    if spec is None:
+        raise ProjectionError(
+            f"Field {field.name!r}: unknown normalize {field.normalize!r} "
+            f"(supported: {sorted(_NORMALIZERS)})"
+        )
+    normalizer, allowed_types = spec
+    if field.type not in allowed_types:
+        raise ProjectionError(
+            f"Field {field.name!r}: normalize {field.normalize!r} cannot apply to "
+            f"type {field.type!r} (expected one of {sorted(allowed_types)})"
+        )
+    return normalizer
+
+
+def _apply_normalizer(
+    normalizer: Callable[[str], Any],
+    field_type: str,
+    value: Any,
+) -> Any:
+    """Apply a scalar normalizer to a projected value or each of its array items."""
+    if field_type == "array" and isinstance(value, list):
+        normalized = [normalizer(item) for item in value]
+        return [item for item in normalized if item is not None]
+    return normalizer(value)
+
+
 def project_profile(
     profile: CanonicalProfile,
     config: ProjectionConfig | dict[str, Any],
@@ -241,15 +287,11 @@ def project_profile(
     output: dict[str, Any] = {}
     projected_confidence: dict[str, Any] = {}
 
-    for field in parsed.fields:
-        if field.normalize is not None:
-            logger.info(
-                "Field %r requested normalize=%r; projection defers it as a no-op "
-                "(normalization is applied at the canonical layer).",
-                field.name,
-                field.normalize,
-            )
+    # Resolve (and validate) normalizers up front so a bad "normalize" key fails
+    # fast, even for a field whose source value turns out to be missing.
+    normalizers = {field.name: _resolve_normalizer(field) for field in parsed.fields}
 
+    for field in parsed.fields:
         value = jmespath.search(field.path, view)
         if value is None:
             if field.on_missing == "omit":
@@ -261,6 +303,9 @@ def project_profile(
             output[field.name] = None
             projected_confidence[field.name] = None
             continue
+        normalizer = normalizers[field.name]
+        if normalizer is not None:
+            value = _apply_normalizer(normalizer, field.type, value)
         output[field.name] = value
         projected_confidence[field.name] = _project_field_confidence(field, confidence_view)
 
