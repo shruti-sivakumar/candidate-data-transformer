@@ -21,7 +21,11 @@ def transform(
     output_path: Path | None = typer.Option(None, "--output", dir_okay=False),
     include_audit: bool = typer.Option(False, "--include-audit"),
 ) -> None:
-    """Run the full pipeline for one candidate bundle and emit projected JSON."""
+    """Run the full pipeline and emit projected JSON.
+
+    Emits a single JSON object for one candidate, or a JSON array when a batch
+    (e.g. a multi-row recruiter CSV) resolves to multiple distinct candidates.
+    """
     try:
         result = run_pipeline(
             PipelineInputs(

@@ -111,21 +111,32 @@ if st.button("Transform", type="primary", use_container_width=True):
         st.error(str(exc))
     else:
         st.success("Transformation complete.")
-        output = result["output"] if include_audit else result
-        if isinstance(output, dict):
-            _render_summary(output)
+        # run_pipeline returns a single object for one candidate, or a list when a
+        # batch (e.g. a multi-row CSV) resolves to several. Normalize to a list so
+        # the rendering path is identical either way.
+        candidates = result if isinstance(result, list) else [result]
+        if len(candidates) > 1:
+            st.info(f"{len(candidates)} candidates detected in this batch.")
 
-        data_col, audit_col = st.columns([3, 2])
-        with data_col:
-            st.markdown("### Output JSON")
-            st.json(output, expanded=2)
-        with audit_col:
-            if include_audit:
-                st.markdown("### Audit Log")
-                st.json(result["audit_log"], expanded=False)
-            else:
-                st.markdown("### Audit Log")
-                st.info("Enable 'Include audit log' in the sidebar to inspect pipeline decisions.")
+        for index, entry in enumerate(candidates):
+            output = entry["output"] if include_audit else entry
+            if len(candidates) > 1:
+                name = output.get("full_name") if isinstance(output, dict) else None
+                st.markdown(f"## Candidate {index + 1}" + (f" — {name}" if name else ""))
+            if isinstance(output, dict):
+                _render_summary(output)
+
+            data_col, audit_col = st.columns([3, 2])
+            with data_col:
+                st.markdown("### Output JSON")
+                st.json(output, expanded=2)
+            with audit_col:
+                if include_audit:
+                    st.markdown("### Audit Log")
+                    st.json(entry["audit_log"], expanded=False)
+                else:
+                    st.markdown("### Audit Log")
+                    st.info("Enable 'Include audit log' in the sidebar to inspect pipeline decisions.")
 
         with st.expander("Raw JSON payload"):
             st.code(json.dumps(result, indent=2, sort_keys=True), language="json")

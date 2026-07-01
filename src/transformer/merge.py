@@ -646,6 +646,69 @@ def _candidate_id(
     return f"cand_{digest}"
 
 
+def _identity_tokens(record: NormalizedRecord) -> set[tuple[str, str]]:
+    """Return the atomic identity anchors a single record exposes.
+
+    These are exactly the signals ``_candidate_id`` keys on independently: an
+    email (its top fallback tier) and a full name (its weakest tier). Phone and
+    location never anchor identity on their own in that chain — they only ever
+    refine a name — so they are not emitted as standalone tokens here. Two
+    records that share any token are taken to describe the same candidate.
+    """
+    tokens: set[tuple[str, str]] = set()
+    for email in record.emails:
+        if email.value:
+            tokens.add(("email", email.value.strip().casefold()))
+    if record.full_name and record.full_name.value:
+        tokens.add(("name", record.full_name.value.strip().casefold()))
+    return tokens
+
+
+def group_records_by_candidate(records: list[NormalizedRecord]) -> list[list[int]]:
+    """Partition record indices into per-candidate groups before merge.
+
+    Records are transitively linked when they share an identity token (see
+    ``_identity_tokens``): e.g. an ATS row and a notes blob sharing an email, or
+    a GitHub profile sharing only a name with the CSV row that also carries the
+    email. A record with no identity signal at all becomes its own group.
+
+    Groups (and the records within them) preserve first-appearance order so the
+    downstream single-candidate pipeline runs deterministically. This is the
+    ONLY new identity logic: merge/score/project are unchanged and each group is
+    fed to them exactly as a lone candidate always has been.
+    """
+    parent = list(range(len(records)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+
+    token_owner: dict[tuple[str, str], int] = {}
+    for index, record in enumerate(records):
+        for token in _identity_tokens(record):
+            if token in token_owner:
+                union(index, token_owner[token])
+            else:
+                token_owner[token] = index
+
+    groups: dict[int, list[int]] = {}
+    order: list[int] = []
+    for index in range(len(records)):
+        root = find(index)
+        if root not in groups:
+            groups[root] = []
+            order.append(root)
+        groups[root].append(index)
+    return [groups[root] for root in order]
+
+
 def merge_records(records: list[NormalizedRecord]) -> tuple[CanonicalProfile, list[AuditEvent]]:
     """Merge one candidate's normalized source records into one canonical profile."""
     if not records:
