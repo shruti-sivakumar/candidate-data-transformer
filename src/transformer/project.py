@@ -6,7 +6,7 @@ from typing import Any, Literal
 import jmespath
 from jsonschema import ValidationError as JsonSchemaValidationError
 from jsonschema import validate
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from src.transformer.models import CanonicalProfile
 
@@ -19,16 +19,59 @@ class ProjectionError(ValueError):
 
 
 class FieldConfig(BaseModel):
-    """One output field requested by the runtime config."""
+    """One output field requested by the runtime config.
+
+    Two config vocabularies are accepted and normalized to the same internal
+    shape (``name`` = output field, ``path`` = canonical source path):
+
+    * Legacy: ``{"name": <output>, "path": <source>, "on_missing": ...}``.
+    * PS example: ``{"path": <output>, "from": <source>, "required": true,
+      "type": "string[]", "normalize": ...}``. In this vocabulary ``path`` is
+      the OUTPUT name and ``from`` is the SOURCE path (``path`` doubles as the
+      source when ``from`` is absent).
+
+    Vocabularies are distinguished by the presence of an explicit ``name`` key:
+    legacy configs always carry one, PS configs never do.
+    """
 
     name: str
     path: str
     type: FieldType
     nullable: bool = False
     on_missing: MissingPolicy = "null"
+    normalize: str | None = None
     description: str | None = None
 
     model_config = ConfigDict(frozen=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_ps_vocabulary(cls, data: Any) -> Any:
+        """Translate PS-example field keys into the internal name/path shape."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+
+        # PS vocabulary: no explicit output "name". "path" is the output field
+        # name; "from" (when present) is the canonical source path, otherwise
+        # "path" doubles as the source.
+        if "name" not in data and "path" in data:
+            output_name = data["path"]
+            data["path"] = data.pop("from", output_name)
+            data["name"] = output_name
+
+        # PS "required: true" means "must be present" -> error on missing, but an
+        # explicit per-field on_missing (legacy or PS) always wins.
+        required = data.pop("required", None)
+        if required and "on_missing" not in data:
+            data["on_missing"] = "error"
+
+        # PS "string[]" (and any "<type>[]") is an array for schema building.
+        field_type = data.get("type")
+        if isinstance(field_type, str) and field_type.endswith("[]"):
+            data["type"] = "array"
+
+        return data
 
 
 class ProjectionConfig(BaseModel):
@@ -39,6 +82,33 @@ class ProjectionConfig(BaseModel):
     include_provenance: bool = False
 
     model_config = ConfigDict(frozen=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_default_on_missing(cls, data: Any) -> Any:
+        """Let the PS top-level ``on_missing`` act as a per-field default."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+
+        default_policy = data.pop("on_missing", None)
+        fields = data.get("fields")
+        if default_policy is None or not isinstance(fields, list):
+            return data
+
+        # A per-field on_missing (or required, which implies "error") overrides
+        # the top-level default; only fields specifying neither inherit it.
+        patched: list[Any] = []
+        for field in fields:
+            if (
+                isinstance(field, dict)
+                and "on_missing" not in field
+                and not field.get("required")
+            ):
+                field = {**field, "on_missing": default_policy}
+            patched.append(field)
+        data["fields"] = patched
+        return data
 
 
 def _plain_view(profile: CanonicalProfile) -> dict[str, Any]:

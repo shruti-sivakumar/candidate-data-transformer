@@ -139,6 +139,70 @@ def test_project_confidence_sidecar_uses_output_field_names_only():
     assert projected["confidence"]["city"] == profile.location.confidence
 
 
+def test_project_accepts_ps_example_vocabulary_verbatim():
+    # The PS's own example config, reproduced exactly: "path" as output name,
+    # "from" as source path, "required": true, "type": "string[]", per-field
+    # "normalize", and a top-level "on_missing" default.
+    profile = _kelsey_profile()
+    config = {
+        "fields": [
+            {"path": "full_name", "type": "string", "required": True},
+            {"path": "primary_email", "from": "emails[0]", "type": "string", "required": True},
+            {"path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164"},
+            {"path": "skills", "from": "skills[].name", "type": "string[]", "normalize": "canonical"},
+        ],
+        "on_missing": "null",
+    }
+
+    projected = project_profile(profile, config)
+
+    assert projected["full_name"] == "Kelsey Hightower"
+    assert projected["primary_email"] == "kelsey.hightower@gmail.com"
+    assert projected["phone"] == "+12025550142"
+    assert "Go" in projected["skills"]
+
+
+def test_ps_vocabulary_normalizes_to_internal_name_and_path():
+    config = ProjectionConfig.model_validate(
+        {
+            "fields": [
+                {"path": "full_name", "type": "string", "required": True},
+                {"path": "primary_email", "from": "emails[0]", "type": "string"},
+                {"path": "skills", "from": "skills[].name", "type": "string[]"},
+            ],
+            "on_missing": "omit",
+        }
+    )
+
+    by_name = {field.name: field for field in config.fields}
+
+    # "path" without "from" is both output name and source path.
+    assert by_name["full_name"].path == "full_name"
+    # "path"/"from" split: output name from "path", source path from "from".
+    assert by_name["primary_email"].path == "emails[0]"
+    # "string[]" collapses to an array type.
+    assert by_name["skills"].type == "array"
+    # "required": true -> error; other fields inherit the top-level default.
+    assert by_name["full_name"].on_missing == "error"
+    assert by_name["primary_email"].on_missing == "omit"
+
+
+def test_ps_top_level_on_missing_is_overridden_by_per_field():
+    config = ProjectionConfig.model_validate(
+        {
+            "fields": [
+                {"path": "headline", "type": "string", "on_missing": "null"},
+                {"path": "note", "from": "does.not.exist", "type": "string"},
+            ],
+            "on_missing": "omit",
+        }
+    )
+
+    by_name = {field.name: field for field in config.fields}
+    assert by_name["headline"].on_missing == "null"
+    assert by_name["note"].on_missing == "omit"
+
+
 def test_build_json_schema_marks_error_fields_required():
     config = ProjectionConfig.model_validate(
         {
