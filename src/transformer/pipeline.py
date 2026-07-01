@@ -72,10 +72,7 @@ def run_pipeline(
         normalized_records.extend(records)
         audit_log.extend(audit)
     if inputs.notes_payload:
-        records, audit = _extract_and_normalize(
-            NotesSource(skill_vocabulary=[]),
-            inputs.notes_payload,
-        )
+        records, audit = _extract_and_normalize(NotesSource(), inputs.notes_payload)
         normalized_records.extend(records)
         audit_log.extend(audit)
 

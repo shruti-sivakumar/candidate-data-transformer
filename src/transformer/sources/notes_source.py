@@ -1,9 +1,9 @@
 """Recruiter notes source adapter.
 
-Stage-1 recognition over free prose. Recognizes contact values (emails, phones,
-URLs) by pattern, and skill surface-forms by gazetteer membership. Emits raw
-recognized substrings — no normalization (that is Module 3) and no canonicalization
-(skill linking is Module 3's fuzzy-match stage). Returns [] on failure, never raises.
+Recognizes contact values by pattern and skill mentions by two-stage linking:
+n-gram candidate generation followed by exact/fuzzy taxonomy linking. Emits
+canonical skill names because the source stage is where prose recognition happens.
+Returns [] on failure, never raises.
 
 Scope note: name / education / experience are NOT extracted from prose in this MVP.
 Those fields are owned by the structured sources (CSV, ATS), which carry them
@@ -19,6 +19,7 @@ from collections.abc import Iterable
 
 from src.transformer.audit import make_event
 from src.transformer.models import AuditEvent, RawRecord
+from src.transformer.normalize.skills import SkillTaxonomy, default_skill_taxonomy, normalize_alias
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +44,22 @@ class NotesSource:
     name: str = "recruiter_notes"
     trust: float = 0.55
 
-    def __init__(self, skill_vocabulary: Iterable[str] | None = None) -> None:
-        """skill_vocabulary: surface forms to recognize (gazetteer keys).
+    def __init__(
+        self,
+        skill_vocabulary: Iterable[str] | None = None,
+        taxonomy: SkillTaxonomy | None = None,
+    ) -> None:
+        """Create a notes adapter.
 
-        Injected, not hardcoded — the same vocabulary feeds every source's skill
-        recognition, and keeping it a constructor dependency means this adapter
-        pre-commits nothing about how that vocabulary is sourced (Lightcast snapshot)
-        or how matches are later canonicalized (Module 3). An empty/None vocabulary
-        means no skills are recognized, which is a valid degraded mode.
+        skill_vocabulary is kept for small tests/backward compatibility. In the
+        real pipeline, taxonomy defaults to the committed skill snapshot.
         """
-        # Stored as-given (not lowercased) — the re.IGNORECASE flag handles
-        # case-insensitive matching. Recognition emits the vocabulary form, not
-        # the as-found substring; canonicalization is Module 3's job.
-        self._skill_forms: list[str] = sorted(
-            {s.strip() for s in (skill_vocabulary or ()) if s and s.strip()}
-        )
+        if taxonomy is not None:
+            self._taxonomy = taxonomy
+        elif skill_vocabulary is None:
+            self._taxonomy = default_skill_taxonomy()
+        else:
+            self._taxonomy = _taxonomy_from_vocabulary(skill_vocabulary)
 
     def extract(self, payload: str) -> list[RawRecord]:
         """Backward-compatible wrapper returning only records."""
@@ -74,13 +76,31 @@ class NotesSource:
                 )
                 return [], audit_log
 
+            skill_matches = self._extract_skill_matches(payload)
             fields: dict[str, object] = {
                 "emails": self._extract_emails(payload),
                 "phones": self._extract_phones(payload),
                 "urls": self._extract_urls(payload),
-                "skills": self._extract_skills(payload),
+                "skills": [match["canonical"] for match in skill_matches],
+                "skill_matches": skill_matches,
             }
+            for match in skill_matches:
+                audit_log.append(
+                    make_event(
+                        "extract",
+                        "skills",
+                        "value_recognized",
+                        "skill_candidate_linked",
+                        source=self.name,
+                        raw_value=match["surface"],
+                        canonical=match["canonical"],
+                        score=match["score"],
+                        match_method=match["method"],
+                    )
+                )
             for field_name, values in fields.items():
+                if field_name == "skill_matches":
+                    continue
                 if not values:
                     audit_log.append(
                         make_event(
@@ -131,26 +151,25 @@ class NotesSource:
                 kept.append(candidate)  # emit as-found, un-normalized
         return _dedupe(kept)
 
-    # --- skill recognition (gazetteer-based) ---------------------------------
+    # --- skill recognition (n-gram candidates + taxonomy linking) ------------
 
     def _extract_skills(self, text: str) -> list[str]:
-        """Recognize skill surface-forms present in the text by gazetteer
-        membership. Emits the matched form as it appears in the vocabulary;
-        canonicalization / fuzzy-linking is Module 3. Lookaround anchors so
-        "Go" does not match inside "Google", and punctuation-bearing skills
-        like "C++", "C#", ".NET" are correctly matched.
-        """
-        if not self._skill_forms:
-            return []
-        found: list[str] = []
-        for form in self._skill_forms:
-            # (?<!\w)/(?!\w): adjacent char must not be a word character.
-            # Handles trailing/leading punctuation (\b fails there).
-            # token-based matching is the upgrade path once the vocabulary's punctuation profile is known.
-            pattern = re.compile(rf"(?<!\w){re.escape(form)}(?!\w)", re.IGNORECASE)
-            if pattern.search(text):
-                found.append(form)
-        return _dedupe(found)
+        """Recognize and link canonical skill names from note prose."""
+        return [match["canonical"] for match in self._extract_skill_matches(text)]
+
+    def _extract_skill_matches(self, text: str) -> list[dict[str, object]]:
+        """Return canonical skill matches with span and match-method details."""
+        matches: list[dict[str, object]] = []
+        for canonical, candidate, score, method in self._taxonomy.extract_from_text(text):
+            matches.append(
+                {
+                    "canonical": canonical,
+                    "surface": candidate.text,
+                    "score": score,
+                    "method": method,
+                }
+            )
+        return matches
 
     # --- extension points (planned, descoped for MVP) ------------------------
     # Prose name/education/experience extraction will slot in here as separate
@@ -167,3 +186,20 @@ def _dedupe(items: Iterable[str]) -> list[str]:
             seen.add(item)
             out.append(item)
     return out
+
+
+def _taxonomy_from_vocabulary(skill_vocabulary: Iterable[str]) -> SkillTaxonomy:
+    """Build a tiny exact-only taxonomy from injected test vocabulary."""
+    alias_to_canonical: dict[str, str] = {}
+    forms: list[str] = []
+    for form in skill_vocabulary:
+        cleaned = str(form).strip()
+        normalized = normalize_alias(cleaned)
+        if cleaned and normalized:
+            alias_to_canonical[normalized] = cleaned
+            forms.append(cleaned)
+    return SkillTaxonomy(
+        alias_to_canonical=dict(sorted(alias_to_canonical.items())),
+        prose_forms=tuple(sorted(set(forms), key=lambda item: (-len(item), item.casefold()))),
+        fuzzy_surfaces=tuple(sorted(alias_to_canonical)),
+    )

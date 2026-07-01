@@ -381,9 +381,10 @@ def test_notes_empty_vocabulary_yields_no_skills():
     assert rf["skills"] == []
 
 
-def test_notes_none_vocabulary_yields_no_skills():
+def test_notes_none_vocabulary_uses_default_taxonomy():
     rf = NotesSource(skill_vocabulary=None).extract("Expert in Python and Kubernetes.")[0].raw_fields
-    assert rf["skills"] == []
+    assert "Python" in rf["skills"]
+    assert "Kubernetes" in rf["skills"]
 
 
 # skill lookaround regressions — punctuation-bearing skills must be recognized
@@ -408,6 +409,10 @@ def test_skills_dotnet_recognized():
 
 def test_skills_go_does_not_match_inside_google():
     assert NotesSource(skill_vocabulary=["Go"])._extract_skills("Works at Google.") == []
+
+
+def test_skills_go_does_not_match_inside_hyphenated_words():
+    assert NotesSource(skill_vocabulary=["Go"])._extract_skills("Handled a go-live.") == []
 
 
 def test_skills_unknown_skill_not_recognized():
@@ -447,11 +452,18 @@ def test_notes_kelsey_recognizes_linkedin_url():
 
 
 def test_notes_kelsey_recognizes_expected_skills():
-    src = NotesSource(skill_vocabulary=_KELSEY_VOCAB)
+    src = NotesSource()
     rf = src.extract(sample_text("recruiter_notes/kelsey_hightower.txt"))[0].raw_fields
     assert "Kubernetes" in rf["skills"]
-    assert "platform engineering" in rf["skills"]
-    assert "infrastructure" in rf["skills"]
+    assert "Platform Engineering" in rf["skills"]
+    assert "Infrastructure" in rf["skills"]
+
+
+def test_notes_skill_audit_records_match_method():
+    _, audit = NotesSource().extract_with_audit("Strong in Kubernets and platform engineering.")
+    skill_events = [event for event in audit if event.field == "skills" and event.kind == "value_recognized"]
+    assert skill_events
+    assert {event.details["match_method"] for event in skill_events}.issubset({"exact", "fuzzy"})
 
 
 def test_notes_andrej_missing_file_graceful_degradation():

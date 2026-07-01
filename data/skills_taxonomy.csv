@@ -1,0 +1,284 @@
+canonical_skill,aliases
+.NET,"dotnet, dot net"
+ABAP,
+Agile,agile methodology
+Airbyte,
+Amazon API Gateway,API Gateway
+Amazon DynamoDB,DynamoDB
+Amazon EC2,EC2
+Amazon ECS,ECS
+Amazon EKS,EKS
+Amazon RDS,RDS
+Amazon Redshift,Redshift
+Amazon S3,S3
+Amazon SageMaker,SageMaker
+Amazon Web Services,AWS
+Android,
+Angular,AngularJS
+Ansible,
+Apache Airflow,Airflow
+Apache Beam,Beam
+Apache Cassandra,Cassandra
+Apache Flink,Flink
+Apache Hadoop,Hadoop
+Apache Hive,Hive
+Apache Kafka,Kafka
+Apache NiFi,NiFi
+Apache Spark,Spark
+Apache Superset,Superset
+Apache Tomcat,Tomcat
+Argo CD,ArgoCD
+ASP.NET,ASP.NET Core
+Azure DevOps,
+Azure Functions,
+Azure Kubernetes Service,AKS
+Bash,
+BigQuery,Google BigQuery
+Bitbucket,
+Bootstrap,
+C,
+C#,csharp
+C++,cpp
+Celery,
+Chef,
+CI/CD,cicd
+CircleCI,
+Cloudflare,
+CloudFormation,AWS CloudFormation
+CloudWatch,AWS CloudWatch
+CMake,
+Computer Vision,CV
+Confluence,
+CSS,CSS3
+Cypress,
+D3.js,D3
+Dart,
+Databricks,
+Data Engineering,
+Data Modeling,
+Data Warehousing,
+DBT,
+Deep Learning,DL
+Deno,
+DevOps,
+Django,
+Docker,
+Elasticsearch,Elastic
+Electron,
+Elixir,
+Entity Framework,
+ESLint,
+Express.js,Express
+FastAPI,
+Figma,
+Firebase,
+Flask,
+Flutter,
+Fortran,
+Git,
+GitHub,
+GitHub Actions,GH Actions
+GitLab,
+GitLab CI,
+Go,golang
+Google Cloud Platform,GCP
+Google Kubernetes Engine,GKE
+Gradle,
+Grafana,
+GraphQL,
+Great Expectations,
+gRPC,
+Groovy,
+Helm,
+Heroku,
+HTML,HTML5
+Hugging Face,Hugging Face Transformers
+Infrastructure,infra
+Infrastructure as Code,IaC
+iOS,
+Istio,
+Java,
+JavaScript,JS
+Jenkins,
+Jest,
+Jira,
+Jupyter Notebook,Jupyter
+Keras,
+Kibana,
+Knative,
+Kotlin,
+Kubeflow,
+Kubernetes,"k8s, kube"
+Laravel,
+Large Language Models,"LLM, LLMs"
+Linux,GNU/Linux
+Logstash,
+Looker,
+Lua,
+Machine Learning,ML
+MariaDB,
+Matplotlib,
+Maven,
+Microservices,microservice architecture
+Microsoft Azure,Azure
+Microsoft SQL Server,"MSSQL, SQL Server"
+MLflow,
+MongoDB,Mongo
+MySQL,
+Natural Language Processing,NLP
+Neo4j,
+NestJS,
+Next.js,NextJS
+Nginx,
+Neural Networks,Neural Nets
+Node.js,"node, nodejs"
+NumPy,
+Objective-C,
+OpenAI,
+OpenCV,
+OpenShift,
+Oracle Database,Oracle DB
+Pandas,
+Perl,
+PHP,
+Platform Engineering,"platform eng, developer platform"
+PostgreSQL,"postgres, psql"
+Postman,
+Power BI,
+Prometheus,
+Protocol Buffers,protobuf
+Puppet,
+PySpark,
+pytest,
+Python,python3
+PyTorch,Torch
+R,
+RabbitMQ,
+React,ReactJS
+React Native,
+Redis,
+Redux,
+REST,RESTful API
+Ruby,
+Ruby on Rails,Rails
+Rust,
+Salesforce,
+Scala,
+scikit-learn,sklearn
+Scrum,
+Selenium,
+Shell Scripting,"shell script, sh"
+Snowflake,
+Solidity,
+Spring Framework,Spring
+Spring Boot,
+SQL,Structured Query Language
+SQLite,
+Svelte,SvelteKit
+Swift,
+Tableau,
+Tailwind CSS,Tailwind
+TensorFlow,TF
+Terraform,
+TestNG,
+Travis CI,
+TypeScript,TS
+Unity,
+Unreal Engine,
+Vite,
+Vue.js,Vue
+Webpack,
+Weights & Biases,W&B
+XML,
+YAML,
+Zendesk,
+ZeroMQ,
+ActiveMQ,
+Adobe Analytics,
+Adobe Experience Manager,AEM
+Akka,
+Amazon CloudFront,CloudFront
+Amazon EMR,EMR
+Amazon Lambda,AWS Lambda
+Apache Avro,Avro
+Apache Iceberg,Iceberg
+Apache Parquet,Parquet
+Apache Pulsar,Pulsar
+Apache Solr,Solr
+Apollo GraphQL,Apollo
+Appium,
+Astro,
+Auth0,
+AWS Glue,Glue
+AWS IAM,IAM
+Azure Cosmos DB,Cosmos DB
+Azure Data Factory,ADF
+Azure Synapse,Synapse
+Babel,
+Backbone.js,Backbone
+Beautiful Soup,BeautifulSoup
+Bigtable,Cloud Bigtable
+Blazor,
+Business Intelligence,BI
+Clojure,
+CockroachDB,
+CodePipeline,AWS CodePipeline
+Contentful,
+Couchbase,
+CUDA,
+Dask,
+Datadog,
+Data Lakes,data lake
+Data Science,
+Data Visualization,
+Datadog APM,
+DigitalOcean,
+Docker Compose,
+Ember.js,Ember
+ETL,
+Feature Engineering,
+Fluentd,
+Gatsby,
+Google Analytics,
+Google Dataflow,Dataflow
+Google Pub/Sub,Pub/Sub
+Google Vertex AI,Vertex AI
+Gunicorn,
+HBase,
+JAX,
+Kafka Streams,
+Koa.js,Koa
+LangChain,
+LlamaIndex,
+MATLAB,
+MLOps,
+Mocha,
+Mockito,
+New Relic,
+OpenTelemetry,OTel
+Packer,
+Playwright,
+Presto,
+Pulumi,
+Qlik,
+Quarkus,
+R Shiny,Shiny
+Ray,
+Rollup,
+SAS,
+Sass,SCSS
+Seaborn,
+Serverless Framework,Serverless
+Spark SQL,
+Splunk,
+Streamlit,
+Strapi,
+Supabase,
+Symfony,
+T-SQL,
+Talend,
+Tornado,
+Trino,
+Twilio,
+Vault,HashiCorp Vault
+Xamarin,

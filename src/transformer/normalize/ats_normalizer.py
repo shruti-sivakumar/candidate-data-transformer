@@ -7,6 +7,8 @@ matches emails on normalized value, so the tag is not needed downstream.
 """
 from __future__ import annotations
 
+import re
+
 from src.transformer.audit import make_event
 from src.transformer.models import (
     AuditEvent,
@@ -26,6 +28,7 @@ from src.transformer.normalize.formats import (
     normalize_phone,
     normalize_url,
 )
+from src.transformer.normalize.skills import canonicalize_skill
 
 _SOURCE = "ats_json"
 _TRUST = 0.90
@@ -109,6 +112,59 @@ def _education_entry(edu: dict) -> TrackedValue | None:
         end_year=end_year_int,
     )
     return _tracked(entry, "direct", year_valid if year_raw else 1.0)
+
+
+def _split_skill_values(raw: object) -> list[str]:
+    """Extract candidate skill strings from common structured ATS shapes."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [item for item in re.split(r"[;,|]", raw) if item.strip()]
+    if isinstance(raw, list):
+        out: list[str] = []
+        for item in raw:
+            out.extend(_split_skill_values(item))
+        return out
+    if isinstance(raw, dict):
+        for key in ("name", "skill", "value", "label"):
+            if key in raw:
+                return _split_skill_values(raw.get(key))
+    return []
+
+
+def _field_name_suggests_skill(name: object) -> bool:
+    """Return whether an ATS/custom field name is likely to hold skill values."""
+    text = str(name).casefold()
+    return any(token in text for token in ("skill", "technolog", "tech stack", "stack"))
+
+
+def _collect_skill_candidates(fields: dict[str, object]) -> list[str]:
+    """Collect skills from explicit ATS skill fields and skill-like custom fields."""
+    candidates: list[str] = []
+    for key in ("skills", "skill_names", "technologies", "technology_names", "tech_stack"):
+        candidates.extend(_split_skill_values(fields.get(key)))
+
+    custom_fields = fields.get("custom_fields") or fields.get("custom_fields_values")
+    if isinstance(custom_fields, dict):
+        for name, value in custom_fields.items():
+            if _field_name_suggests_skill(name):
+                candidates.extend(_split_skill_values(value))
+    elif isinstance(custom_fields, list):
+        for item in custom_fields:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name") or item.get("field_name") or item.get("label")
+            if _field_name_suggests_skill(name):
+                candidates.extend(_split_skill_values(item.get("value") or item.get("values")))
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        cleaned = clean_string(candidate)
+        if cleaned and cleaned.casefold() not in seen:
+            seen.add(cleaned.casefold())
+            out.append(cleaned)
+    return out
 
 
 def normalize_ats(record: RawRecord) -> NormalizedRecord:
@@ -247,6 +303,19 @@ def normalize_ats_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[
     if not educations:
         audit_log.append(make_event("normalize", "education", "field_missing", "source_field_absent", source=_SOURCE))
 
+    # skills: explicit ATS fields or skill-like custom fields only.
+    skills: list[TrackedValue] = []
+    for raw_skill in _collect_skill_candidates(f):
+        canon = canonicalize_skill(raw_skill)
+        if canon and canon.casefold() not in {skill.value.casefold() for skill in skills}:
+            skills.append(_tracked(canon, "direct", 1.0))
+        elif canon:
+            audit_log.append(make_event("normalize", "skills", "value_dropped", "duplicate_canonical_skill", source=_SOURCE, raw_value=canon))
+        else:
+            audit_log.append(make_event("normalize", "skills", "value_dropped", "failed_canonicalization", source=_SOURCE, raw_value=raw_skill))
+    if not skills:
+        audit_log.append(make_event("normalize", "skills", "field_missing", "source_field_absent", source=_SOURCE))
+
     return NormalizedRecord(
         source=_SOURCE,
         full_name=full_name,
@@ -256,7 +325,7 @@ def normalize_ats_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[
         links=links,
         headline=None,           # ATS fixtures carry no headline field
         years_experience=None,   # not in ATS fixtures
-        skills=[],               # ATS fixtures carry no skills
+        skills=skills,
         experience=experience,
         education=education,
         projects=[],

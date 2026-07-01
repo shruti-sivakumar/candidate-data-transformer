@@ -32,6 +32,7 @@ from src.transformer.normalize.formats import (
     normalize_url,
     normalize_years,
 )
+from src.transformer.normalize.skills import canonicalize_skill
 
 _SOURCE = "recruiter_csv"
 _TRUST = 0.80
@@ -266,7 +267,7 @@ def normalize_csv_with_audit(record: RawRecord) -> tuple[NormalizedRecord, list[
     raw_skills = get("top_skills")
     if raw_skills:
         for piece in _split_multi(raw_skills):
-            s = clean_string(piece)
+            s = canonicalize_skill(piece)
             if s:
                 skills.append(_tracked(s, "direct", 1.0))
         if not skills:

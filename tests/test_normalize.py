@@ -50,6 +50,10 @@ class TestCSVNormalizerBehavioral:
         assert vals == ["Kubernetes", "Go", "Python"]
         assert all(s.method == "direct" and s.confidence == 0.8 for s in r.skills)
 
+    def test_skill_aliases_are_canonicalized(self):
+        r = normalize_csv(self._raw(top_skills="k8s; golang; torch"))
+        assert [s.value for s in r.skills] == ["Kubernetes", "Go", "PyTorch"]
+
     def test_failed_email_omitted(self):
         # Unparseable email -> field absent (empty list), not a None-valued entry.
         r = normalize_csv(self._raw(email="not-an-email"))
@@ -103,6 +107,18 @@ class TestATSNormalizerBehavioral:
     def test_no_skills_field_yields_empty(self):
         r = normalize_ats(self._raw(first_name="X"))
         assert r.skills == []
+
+    def test_explicit_skills_field_is_normalized(self):
+        r = normalize_ats(self._raw(skills=["k8s", {"name": "golang"}, "torch"]))
+        assert [skill.value for skill in r.skills] == ["Kubernetes", "Go", "PyTorch"]
+        assert all(skill.method == "direct" and skill.confidence == 0.9 for skill in r.skills)
+
+    def test_skill_like_custom_fields_are_normalized(self):
+        r = normalize_ats(self._raw(custom_fields=[
+            {"name": "Technical Skills", "value": "Python, k8s"},
+            {"name": "Interview status", "value": "strong"},
+        ]))
+        assert [skill.value for skill in r.skills] == ["Python", "Kubernetes"]
 
 
 # ---------------------------------------------------------------------------
